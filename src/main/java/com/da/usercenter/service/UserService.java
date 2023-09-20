@@ -1,5 +1,6 @@
 package com.da.usercenter.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.da.usercenter.model.entity.User;
 
@@ -57,6 +58,7 @@ public interface UserService extends IService<User> {
      * @return
      */
     boolean isAdmin(HttpServletRequest request);
+    boolean isAdmin(User loginUser);
 
     /**
      * 用户脱敏
@@ -85,7 +87,27 @@ public interface UserService extends IService<User> {
      */
     List<User> searchUsersByTags(List<String> tags);
 
+    /**
+     * 获取登录用户信息
+     * @param request
+     * @return
+     */
+    User getLoginUser(HttpServletRequest request);
 
 
+    /**
+     * 更新用户信息
+     *
+     * @param user
+     * @return
+     */
+    Boolean updateUser(User user, HttpServletRequest request);
+
+    /**
+     * 推荐用户
+     * @param request
+     * @return
+     */
+    Page<User> recommendUsers(long pageSize, long pageNum, HttpServletRequest request);
 }
 

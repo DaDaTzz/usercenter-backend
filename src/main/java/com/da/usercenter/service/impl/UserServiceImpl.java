@@ -2,6 +2,7 @@ package com.da.usercenter.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.exception.BusinessException;
@@ -10,12 +11,14 @@ import com.da.usercenter.model.entity.User;
 import com.da.usercenter.service.UserService;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Array;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -41,6 +44,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public static final String SALT = "Da";
 
 
+    /**
+     * 注册
+     * @param loginAccount  账号
+     * @param loginPassword 密码
+     * @param checkPassword 校验密码
+     * @return
+     */
     @Override
     public Long userRegister(String loginAccount, String loginPassword, String checkPassword) {
         // 非空校验
@@ -83,6 +93,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return user.getId();
     }
 
+    /**
+     * 登录
+     * @param loginAccount  账号
+     * @param loginPassword 密码
+     * @param request
+     * @return
+     */
     @Override
     public User userLogin(String loginAccount, String loginPassword, HttpServletRequest request) {
         // 非空校验
@@ -118,6 +135,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return safeUser;
     }
 
+    /**
+     * 通过昵称查询用户信息
+     * @param nickName 昵称
+     * @param request
+     * @return
+     */
     @Override
     public List<User> searchUser(String nickName, HttpServletRequest request) {
         // 权限校验
@@ -132,6 +155,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return userList.stream().map(user -> getSafeUser(user)).collect(Collectors.toList());
     }
 
+    /**
+     * 删除用户
+     * @param user
+     * @param request
+     * @return
+     */
     @Override
     public boolean deleteUser(User user, HttpServletRequest request) {
         // 权限校验
@@ -144,6 +173,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return removeById(user.getId());
     }
 
+    /**
+     * 判断是否为管理员
+     * @param request
+     * @return
+     */
     @Override
     public boolean isAdmin(HttpServletRequest request) {
         Object attribute = request.getSession().getAttribute(USER_LOGIN_STATE);
@@ -157,6 +191,23 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         return true;
     }
+
+    /**
+     * 判断是否为管理员
+     * @param loginUser
+     * @return
+     */
+    @Override
+    public boolean isAdmin(User loginUser) {
+        if(loginUser == null ){
+            throw new BusinessException(NOT_LOGIN);
+        }
+        if(loginUser.getType() != 1){
+            return false;
+        }
+        return true;
+    }
+
 
     @Override
     public User getSafeUser(User user) {
@@ -179,6 +230,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return safeUser;
     }
 
+    /**
+     * 获取当前用户信息
+     * @param request
+     * @return
+     */
     @Override
     public User getCurrentUser(HttpServletRequest request) {
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
@@ -195,6 +251,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return this.getSafeUser(user);
     }
 
+    /**
+     * 注销
+     * @param request
+     * @return
+     */
     @Override
     public Integer userLogOut(HttpServletRequest request) {
         if(request == null){
@@ -204,6 +265,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return 1;
     }
 
+    /**
+     * 通过标签搜索用户信息
+     * @param tagNameList
+     * @return
+     */
     @Override
     public List<User> searchUsersByTags(List<String> tagNameList){
         if(CollectionUtils.isEmpty(tagNameList)){
@@ -233,6 +299,59 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     }
 
+    /**
+     * 获取登录用户信息
+     * @param request
+     * @return
+     */
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        if(request == null){
+            return null;
+        }
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        if(userObj == null){
+            throw new BusinessException(NOT_LOGIN);
+        }
+        return (User)userObj;
+    }
+
+    /**
+     * 更新用户
+     *
+     * @param user
+     * @return
+     */
+    @Override
+    public Boolean updateUser(User user, HttpServletRequest request) {
+        // 1.校验参数是否为空
+        if (user == null) {
+            throw new BusinessException(PARAMS_ERROR);
+        }
+        // 2.权限校验
+        User loginUser = this.getLoginUser(request);
+        // 校验是否为管理员或自己
+        if(isAdmin(loginUser)){
+            return this.updateById(user);
+        }
+        if(loginUser.getId() != user.getId()){
+            throw new BusinessException(ErrorCode.NO_AUTH,"没有权限");
+        }
+        // 3.触发更新
+        return this.updateById(user);
+    }
+
+    /**
+     * 推荐用户
+     * @param request
+     * @return
+     */
+    @Override
+    public Page<User> recommendUsers(long pageSize, long pageNum, HttpServletRequest request) {
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        Page<User> userPage = this.page(new Page<>(pageNum, pageSize), queryWrapper);
+        return userPage;
+    }
 
 
 }

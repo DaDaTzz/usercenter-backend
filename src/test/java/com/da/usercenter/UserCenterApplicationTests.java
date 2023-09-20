@@ -1,19 +1,20 @@
 package com.da.usercenter;
 
+import cn.hutool.core.date.StopWatch;
 import cn.hutool.core.lang.Assert;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.User;
 import com.da.usercenter.service.UserService;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.commons.util.StringUtils;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.annotation.Resource;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @SpringBootTest
 class UserCenterApplicationTests {
@@ -25,18 +26,50 @@ class UserCenterApplicationTests {
 
     @Test
     public void testInsertUser(){
-        User user = new User();
-        user.setNickname("花无缺");
-        user.setSex(0);
-        user.setStates(0);
-        user.setType(0);
-        user.setLoginAccount("666888");
-        user.setLoginPassword("12345678");
-        user.setPhone("18370598888");
-        user.setEmail("123@qq.com");
-        user.setProfilePhoto("https://z1.ax1x.com/2023/06/11/pCVNPyD.jpg");
-        user.setProfile("我是一名程序员，^_^O(∩_∩)O哈哈~");
-        userMapper.insert(user);
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        final int INSERT_NUM = 100000;
+        // 分十组
+        int batchSize = 100000;
+        int j = 0;
+        List<CompletableFuture<Void>> futureList = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+
+            Random random = new Random();
+            List<User> userList = new ArrayList<>();
+
+            while(true){
+                j++;
+                User user = new User();
+                user.setNickname("Da");
+                user.setSex(1);
+                user.setStates(0);
+                user.setType(0);
+                user.setLoginAccount("666888" + random.nextInt());
+                user.setLoginPassword("12345678");
+                user.setPhone("18370598888");
+                user.setEmail("123@qq.com");
+                user.setTags("[]");
+                user.setProfilePhoto("https://z1.ax1x.com/2023/06/11/pCVNPyD.jpg");
+                user.setProfile("我是一名程序员，^_^O(∩_∩)O哈哈~");
+                userList.add(user);
+                if(j % batchSize == 0){
+                    break;
+                }
+            }
+
+            // 异步执行
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() ->{
+                userService.saveBatch(userList, batchSize);
+            });
+            futureList.add(future);
+        }
+        CompletableFuture.allOf(futureList.toArray(new CompletableFuture[]{})).join();
+        stopWatch.stop();
+        System.out.println(stopWatch.getTotalTimeMillis());
+
+
+
     }
 
     @Test
@@ -60,6 +93,16 @@ class UserCenterApplicationTests {
         List<User> users = userService.searchUsersByTags(tags);
         System.out.println(users);
         System.out.println("size = " + users.size());
+    }
+
+    @Test
+    public void testGson(){
+        String str = "['java','python','c','c++']";
+        Gson gson = new Gson();
+        List list = gson.fromJson(str, List.class);
+        list.forEach(i ->{
+            System.out.println(i);
+        });
     }
 
 

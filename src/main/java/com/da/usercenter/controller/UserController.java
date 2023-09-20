@@ -3,6 +3,7 @@ package com.da.usercenter.controller;
 
 
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.exception.BusinessException;
@@ -25,7 +26,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/user")
-@CrossOrigin(origins = {"http://localhost:5173","http://localhost:8000"})
+@CrossOrigin(origins = {"http://localhost:5173"},allowCredentials = "true" )
 public class UserController{
     @Resource
     private UserService userService;
@@ -71,6 +72,12 @@ public class UserController{
         return ResponseResult.success(result);
     }
 
+    @GetMapping("/recommend")
+    public ResponseResult<Page<User>> recommendUsers(long pageSize, long pageNum, HttpServletRequest request){
+        Page<User> userPage = userService.recommendUsers(pageSize, pageNum, request);
+        return ResponseResult.success(userPage);
+    }
+
     @PostMapping("/delete")
     public ResponseResult<Boolean> deleteUser(@RequestBody User user, HttpServletRequest request){
         boolean result = userService.deleteUser(user, request);
@@ -83,6 +90,15 @@ public class UserController{
         return ResponseResult.success(result);
     }
 
+    @PostMapping("/update")
+    public ResponseResult<Boolean> updateUser(@RequestBody User user,HttpServletRequest request){
+        if(user == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Boolean res = userService.updateUser(user, request);
+        return ResponseResult.success(res);
+    }
+
     @GetMapping("/search/tags")
     public ResponseResult<List<User>> getUserByTags(@RequestParam(required = false) List<String> tagNameList){
         if(CollectionUtils.isEmpty(tagNameList)){
@@ -91,6 +107,8 @@ public class UserController{
         List<User> userList = userService.searchUsersByTags(tagNameList);
         return ResponseResult.success(userList);
     }
+
+
 
 }
 

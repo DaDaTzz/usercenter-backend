@@ -70,7 +70,7 @@ public class User implements Serializable {
     /**
      * 标签列表
      */
-    private String tags[];
+    private String tags;
 
     /**
      * 账号状态
