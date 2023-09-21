@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.mapper.UserMapper;
+import com.da.usercenter.model.entity.Team;
 import com.da.usercenter.model.entity.User;
 import com.da.usercenter.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +20,6 @@ import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.lang.reflect.Array;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -374,6 +373,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         return userPage;
     }
+
+
 
 
 }

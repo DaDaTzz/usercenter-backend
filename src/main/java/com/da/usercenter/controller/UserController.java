@@ -21,10 +21,9 @@ import java.lang.ref.PhantomReference;
 import java.util.List;
 
 /**
- * (User)表控制层
+ * 用户接口
  *
- * @author Da
- * @since 2023-06-10 13:40:19
+ * @author 达
  */
 @RestController
 @RequestMapping("/user")
@@ -32,8 +31,7 @@ import java.util.List;
 public class UserController{
     @Resource
     private UserService userService;
-    @Resource
-    private RedisTemplate redisTemplate;
+
 
     @PostMapping("/register")
     public ResponseResult<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest){
