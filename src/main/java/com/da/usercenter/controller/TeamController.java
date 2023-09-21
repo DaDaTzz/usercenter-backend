@@ -41,7 +41,7 @@ public class TeamController {
     }
 
     @PostMapping("/update")
-    public ResponseResult<Boolean> deleteTeam(@RequestBody Team team) {
+    public ResponseResult<Boolean> updateTeam(@RequestBody Team team) {
         Boolean res = teamService.updateTeam(team);
         return ResponseResult.success(res);
     }
