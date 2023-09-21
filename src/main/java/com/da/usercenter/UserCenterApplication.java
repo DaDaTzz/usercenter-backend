@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @MapperScan("com.da.usercenter.mapper")
+@EnableScheduling
 public class UserCenterApplication {
 
     public static void main(String[] args) {

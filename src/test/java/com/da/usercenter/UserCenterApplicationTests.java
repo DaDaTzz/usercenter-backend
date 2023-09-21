@@ -1,15 +1,11 @@
 package com.da.usercenter;
 
 import cn.hutool.core.date.StopWatch;
-import cn.hutool.core.lang.Assert;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.User;
 import com.da.usercenter.service.UserService;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
-import org.junit.platform.commons.util.StringUtils;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.annotation.Resource;

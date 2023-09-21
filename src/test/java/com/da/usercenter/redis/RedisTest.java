@@ -1,5 +1,6 @@
 package com.da.usercenter.redis;
 
+import com.da.usercenter.model.entity.User;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,15 +23,23 @@ public class RedisTest {
         valueOperations.set("name", "da");
         valueOperations.set("age", 18);
         valueOperations.set("height", 1.8);
+        User user = new User();
+        user.setId(1);
+        user.setNickname("哒哒");
+        valueOperations.set("user", user);
 
         // 查
         Object name = valueOperations.get("name");
         Object age = valueOperations.get("age");
         Object height = valueOperations.get("height");
+        User u = (User)valueOperations.get("user");
 
         Assertions.assertEquals(name, "da");
         Assertions.assertEquals(age, 18);
         Assertions.assertEquals(height, 1.8);
+        Assertions.assertEquals(u.getId(), 1);
+        Assertions.assertEquals(u.getNickname(), "哒哒");
+
 
         // 改
         valueOperations.set("name", "dada");

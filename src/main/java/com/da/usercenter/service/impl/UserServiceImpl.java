@@ -9,9 +9,10 @@ import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.User;
 import com.da.usercenter.service.UserService;
-import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
@@ -19,7 +20,9 @@ import org.springframework.util.DigestUtils;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -37,6 +40,9 @@ import static com.da.usercenter.constant.UserConstant.*;
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
     @Resource
     private UserMapper userMapper;
+
+    @Resource
+    private RedisTemplate redisTemplate;
 
     /**
      * 盐值，混淆密码
@@ -348,8 +354,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public Page<User> recommendUsers(long pageSize, long pageNum, HttpServletRequest request) {
+        // 如果有缓存，直接从缓存中读取用户信息
+        User loginUser = this.getLoginUser(request);
+        long userId = loginUser.getId();
+        String redisKey = "user:recommend:" + userId;
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        Page<User> userPage = (Page<User>)valueOperations.get(redisKey);
+        if(userPage != null){
+            return userPage;
+        }
+        // 无缓存，查询数据库
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        Page<User> userPage = this.page(new Page<>(pageNum, pageSize), queryWrapper);
+        userPage = this.page(new Page<>(pageNum, pageSize), queryWrapper);
+        // 将读到的数据存入缓存中
+        try {
+            valueOperations.set(redisKey, userPage, 30, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.error("redis set key error", e);
+        }
         return userPage;
     }
 

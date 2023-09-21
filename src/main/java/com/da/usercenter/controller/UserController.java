@@ -11,11 +11,13 @@ import com.da.usercenter.model.entity.User;
 import com.da.usercenter.model.request.UserLoginRequest;
 import com.da.usercenter.model.request.UserRegisterRequest;
 import com.da.usercenter.service.UserService;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.lang.ref.PhantomReference;
 import java.util.List;
 
 /**
@@ -30,6 +32,8 @@ import java.util.List;
 public class UserController{
     @Resource
     private UserService userService;
+    @Resource
+    private RedisTemplate redisTemplate;
 
     @PostMapping("/register")
     public ResponseResult<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest){
