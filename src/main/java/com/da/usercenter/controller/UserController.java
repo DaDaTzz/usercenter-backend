@@ -8,6 +8,7 @@ import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.request.TeamJoinRequest;
 import com.da.usercenter.model.request.UserLoginRequest;
 import com.da.usercenter.model.request.UserRegisterRequest;
 import com.da.usercenter.service.UserService;
@@ -109,6 +110,8 @@ public class UserController{
         List<User> userList = userService.searchUsersByTags(tagNameList);
         return ResponseResult.success(userList);
     }
+
+
 
 
 

@@ -9,6 +9,7 @@ import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.Team;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.request.TeamJoinRequest;
 import com.da.usercenter.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -191,10 +192,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.NOT_LOGIN,"未登录");
         }
         // 权限校验
-        if(user.getType() != ADMIN_USER){
-            throw new BusinessException(ErrorCode.NO_AUTH,"没有权限");
+        if(user.getType().equals(ADMIN_USER)){
+            return true;
         }
-        return true;
+        return false;
     }
 
     /**
@@ -207,7 +208,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(loginUser == null ){
             throw new BusinessException(NOT_LOGIN);
         }
-        if(loginUser.getType() != 1){
+        if(!loginUser.getType().equals(ADMIN_USER)){
             return false;
         }
         return true;
@@ -373,7 +374,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         return userPage;
     }
-
 
 
 

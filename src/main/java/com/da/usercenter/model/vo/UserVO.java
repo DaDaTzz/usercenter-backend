@@ -1,33 +1,17 @@
-package com.da.usercenter.model.entity;
+package com.da.usercenter.model.vo;
 
-import java.io.Serializable;
+import lombok.Data;
+
 import java.util.Date;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import com.baomidou.mybatisplus.annotation.TableName;
-
 /**
- * (User)表实体类
- *
- * @author Da
- * @since 2023-06-10 13:24:18
+ * 用户包装类
  */
-@SuppressWarnings("serial")
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@TableName("user")
-public class User implements Serializable {
-
+public class UserVO {
     /**
      * 主键自增
      */
-    @TableId(type = IdType.ASSIGN_ID)
     private long id;
 
     /**
@@ -52,10 +36,6 @@ public class User implements Serializable {
      */
     private String profile;
 
-    /**
-     * 登录密码
-     */
-    private String loginPassword;
 
     /**
      * 电话
@@ -92,13 +72,6 @@ public class User implements Serializable {
      */
     private Integer type;
 
-    /**
-     * 逻辑删除
-     * 0-未删除
-     * 1-已删除
-     */
-    @TableLogic
-    private Integer isDelete;
 
     /**
      * 创建时间
@@ -110,7 +83,4 @@ public class User implements Serializable {
      */
     private Date updateTime;
 
-
-
 }
-

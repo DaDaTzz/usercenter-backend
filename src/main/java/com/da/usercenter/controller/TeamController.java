@@ -5,6 +5,9 @@ import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.model.dto.TeamQuery;
 import com.da.usercenter.model.entity.Team;
 import com.da.usercenter.model.request.CreateTeamRequest;
+import com.da.usercenter.model.request.TeamJoinRequest;
+import com.da.usercenter.model.request.TeamUpdateRequest;
+import com.da.usercenter.model.vo.TeamUserVO;
 import com.da.usercenter.service.TeamService;
 import com.da.usercenter.service.UserService;
 import org.springframework.web.bind.annotation.*;
@@ -41,8 +44,8 @@ public class TeamController {
     }
 
     @PostMapping("/update")
-    public ResponseResult<Boolean> updateTeam(@RequestBody Team team) {
-        Boolean res = teamService.updateTeam(team);
+    public ResponseResult<Boolean> updateTeam(@RequestBody TeamUpdateRequest teamUpdateRequest, HttpServletRequest request) {
+        Boolean res = teamService.updateTeam(teamUpdateRequest, request);
         return ResponseResult.success(res);
     }
 
@@ -53,15 +56,21 @@ public class TeamController {
     }
 
     @GetMapping("/list")
-    public ResponseResult<List<Team>> getTeamList(TeamQuery teamQuery) {
-        List<Team> teamList = teamService.getTeamList(teamQuery);
-        return ResponseResult.success(teamList);
+    public ResponseResult<List<TeamUserVO>> getTeamList(TeamQuery teamQuery, HttpServletRequest request) {
+        List<TeamUserVO> teamUserVOList = teamService.getTeamList(teamQuery, request);
+        return ResponseResult.success(teamUserVOList);
     }
 
     @GetMapping("/list/page")
     public ResponseResult<Page<Team>> getTeamListByPage(TeamQuery teamQuery) {
         Page<Team> teamPage = teamService.getTeamListByPage(teamQuery);
         return ResponseResult.success(teamPage);
+    }
+
+    @PostMapping("/join")
+    public ResponseResult<Boolean> joinTeam(@RequestBody TeamJoinRequest teamJoinRequest, HttpServletRequest request){
+        Boolean res = teamService.joinTeam(teamJoinRequest, request);
+        return ResponseResult.success(res);
     }
 
 

@@ -32,6 +32,11 @@ public class TeamQuery extends PageRequest {
     private String name;
 
     /**
+     * 关键词
+     */
+    private String searchText;
+
+    /**
      * 描述
      */
     private String description;

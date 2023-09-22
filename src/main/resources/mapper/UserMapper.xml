@@ -5,4 +5,11 @@
 <mapper namespace="com.da.usercenter.mapper.UserMapper">
 
 
+    <!-- 根据队伍id查询已加入的用户信息 -->
+    <select id="getUserListByTeamId" resultType="com.da.usercenter.model.entity.User">
+        select u.*
+        from user_team ut
+                 join user u on u.id = ut.user_id
+        where team_id = #{teamId};
+    </select>
 </mapper>

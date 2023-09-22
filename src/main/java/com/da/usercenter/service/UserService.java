@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.da.usercenter.model.entity.Team;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.request.TeamJoinRequest;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -111,11 +112,9 @@ public interface UserService extends IService<User> {
      */
     Page<User> recommendUsers(long pageSize, long pageNum, HttpServletRequest request);
 
-    /**
-     * 创建队伍
-     * @param team
-     * @return
-     */
+
+
+
 
 }
 

@@ -101,5 +101,12 @@ class UserCenterApplicationTests {
         });
     }
 
+    @Test
+    public void testGetUserListByTeamId(){
+        List<User> userList = userMapper.getUserListByTeamId(27);
+        userList.forEach(user -> {
+            System.out.println(user);
+        });
+    }
 
 }
