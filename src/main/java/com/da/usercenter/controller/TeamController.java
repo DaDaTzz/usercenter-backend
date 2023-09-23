@@ -4,12 +4,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.model.dto.TeamQuery;
 import com.da.usercenter.model.entity.Team;
-import com.da.usercenter.model.request.CreateTeamRequest;
-import com.da.usercenter.model.request.TeamJoinRequest;
-import com.da.usercenter.model.request.TeamUpdateRequest;
+import com.da.usercenter.model.request.*;
 import com.da.usercenter.model.vo.TeamUserVO;
 import com.da.usercenter.service.TeamService;
-import com.da.usercenter.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -28,8 +25,7 @@ public class TeamController {
 
     @Resource
     private TeamService teamService;
-    @Resource
-    private UserService userService;
+
 
     @PostMapping("/add")
     public ResponseResult<Long> createTeam(@RequestBody CreateTeamRequest createTeamRequest, HttpServletRequest request) {
@@ -37,11 +33,6 @@ public class TeamController {
         return ResponseResult.success(teamId);
     }
 
-    @PostMapping("/delete")
-    public ResponseResult<Boolean> deleteTeam(long teamId) {
-        Boolean res = teamService.deleteTeam(teamId);
-        return ResponseResult.success(res);
-    }
 
     @PostMapping("/update")
     public ResponseResult<Boolean> updateTeam(@RequestBody TeamUpdateRequest teamUpdateRequest, HttpServletRequest request) {
@@ -68,12 +59,23 @@ public class TeamController {
     }
 
     @PostMapping("/join")
-    public ResponseResult<Boolean> joinTeam(@RequestBody TeamJoinRequest teamJoinRequest, HttpServletRequest request){
+    public ResponseResult<Boolean> joinTeam(@RequestBody TeamJoinRequest teamJoinRequest, HttpServletRequest request) {
         Boolean res = teamService.joinTeam(teamJoinRequest, request);
         return ResponseResult.success(res);
     }
 
+    @PostMapping("/exit")
+    public ResponseResult<Boolean> exitTeam(@RequestBody TeamExitRequest teamExitRequest, HttpServletRequest request) {
+        Boolean res = teamService.exitTeam(teamExitRequest, request);
+        return ResponseResult.success(res);
+    }
 
+
+    @PostMapping("/disband")
+    public ResponseResult<Boolean> disbandTeam(@RequestBody TeamDisband teamDisband, HttpServletRequest request) {
+        Boolean res = teamService.disbandTeam(teamDisband, request);
+        return ResponseResult.success(res);
+    }
 
 
 }

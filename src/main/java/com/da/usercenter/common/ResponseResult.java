@@ -7,10 +7,11 @@ import java.io.Serializable;
 /**
  * 通用返回结果类
  * @author Da
- * @date 2023/6/12 15:54
+ * &#064;date  2023/6/12 15:54
  */
 @Data
 public class ResponseResult<T> implements Serializable {
+    private static final long serialVersionUID = -5570699418243385684L;
     private Integer code;
     private T data;
     private String message;
@@ -29,8 +30,8 @@ public class ResponseResult<T> implements Serializable {
 
     /**
      * 成功
-     * @param data
-     * @param message
+     * @param data 数据
+     * @param message 详细信息
      * @return
      * @param <T>
      */
@@ -88,7 +89,7 @@ public class ResponseResult<T> implements Serializable {
 
     /**
      * 失败
-     * @param errorCode
+     * @param errorCode 错误状态码
      * @return
      * @param <T>
      */

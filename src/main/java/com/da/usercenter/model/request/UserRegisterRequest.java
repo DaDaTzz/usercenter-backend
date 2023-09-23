@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 /**
  * @author Da
- * @date 2023/6/10 19:22
+ * &#064;date  2023/6/10 19:22
  */
 @Data
 public class UserRegisterRequest implements Serializable {

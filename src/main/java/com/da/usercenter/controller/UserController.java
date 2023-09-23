@@ -8,17 +8,14 @@ import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.model.entity.User;
-import com.da.usercenter.model.request.TeamJoinRequest;
 import com.da.usercenter.model.request.UserLoginRequest;
 import com.da.usercenter.model.request.UserRegisterRequest;
 import com.da.usercenter.service.UserService;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.lang.ref.PhantomReference;
 import java.util.List;
 
 /**
@@ -105,7 +102,7 @@ public class UserController{
     @GetMapping("/search/tags")
     public ResponseResult<List<User>> getUserByTags(@RequestParam(required = false) List<String> tagNameList){
         if(CollectionUtils.isEmpty(tagNameList)){
-            new BusinessException(ErrorCode.PARAMS_ERROR);
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         List<User> userList = userService.searchUsersByTags(tagNameList);
         return ResponseResult.success(userList);

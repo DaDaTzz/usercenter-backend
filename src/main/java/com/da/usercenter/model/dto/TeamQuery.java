@@ -5,9 +5,6 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.da.usercenter.common.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.springframework.scheduling.annotation.EnableScheduling;
-
-import java.util.Date;
 
 /**
  * 队伍查询封装类

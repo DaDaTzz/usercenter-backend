@@ -9,11 +9,6 @@ import lombok.Data;
 public class TeamJoinRequest {
 
     /**
-     * 用户id
-     */
-    private Long userId;
-
-    /**
      * 队伍id
      */
     private Long teamId;

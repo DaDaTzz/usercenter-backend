@@ -3,7 +3,9 @@ package com.da.usercenter;
 import cn.hutool.core.date.StopWatch;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.entity.UserTeam;
 import com.da.usercenter.service.UserService;
+import com.da.usercenter.service.UserTeamService;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +21,8 @@ class UserCenterApplicationTests {
     private UserMapper userMapper;
     @Resource
     private UserService userService;
+    @Resource
+    private UserTeamService userTeamService;
 
     @Test
     public void testInsertUser(){
@@ -107,6 +111,15 @@ class UserCenterApplicationTests {
         userList.forEach(user -> {
             System.out.println(user);
         });
+    }
+
+    @Test
+    public void testSort(){
+        List<UserTeam> userTeamList = userTeamService.list();
+        userTeamList.sort(Comparator.comparing(UserTeam::getJoinTime));
+        for (UserTeam userTeam : userTeamList) {
+            System.out.println(userTeam.getJoinTime());
+        }
     }
 
 }

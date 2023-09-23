@@ -2,7 +2,7 @@ package com.da.usercenter.constant;
 
 /**
  * @author Da
- * @date 2023/6/10 20:39
+ * &#064;date  2023/6/10 20:39
  */
 public interface UserConstant {
     /**

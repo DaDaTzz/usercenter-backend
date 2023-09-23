@@ -7,9 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.mapper.UserMapper;
-import com.da.usercenter.model.entity.Team;
 import com.da.usercenter.model.entity.User;
-import com.da.usercenter.model.request.TeamJoinRequest;
 import com.da.usercenter.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,8 +36,6 @@ import static com.da.usercenter.constant.UserConstant.*;
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
-    @Resource
-    private UserMapper userMapper;
 
     @Resource
     private RedisTemplate redisTemplate;
@@ -55,7 +51,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param loginAccount  账号
      * @param loginPassword 密码
      * @param checkPassword 校验密码
-     * @return
+     * @return 创建成功的用户 id
      */
     @Override
     public Long userRegister(String loginAccount, String loginPassword, String checkPassword) {
@@ -103,8 +99,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 登录
      * @param loginAccount  账号
      * @param loginPassword 密码
-     * @param request
-     * @return
+     * @param request 客户端请求对象
+     * @return 登录用户信息
      */
     @Override
     public User userLogin(String loginAccount, String loginPassword, HttpServletRequest request) {
@@ -144,8 +140,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     /**
      * 通过昵称查询用户信息
      * @param nickName 昵称
-     * @param request
-     * @return
+     * @param request 客户端请求对象
+     * @return userList
      */
     @Override
     public List<User> searchUser(String nickName, HttpServletRequest request) {
@@ -158,14 +154,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             queryWrapper.like(User::getNickname, nickName);
         }
         List<User> userList = this.list(queryWrapper);
-        return userList.stream().map(user -> getSafeUser(user)).collect(Collectors.toList());
+        return userList.stream().map(this::getSafeUser).collect(Collectors.toList());
     }
 
     /**
      * 删除用户
-     * @param user
-     * @param request
-     * @return
+     * @param user 用户信息
+     * @param request 客户端请求对象
+     * @return boolean
      */
     @Override
     public boolean deleteUser(User user, HttpServletRequest request) {
@@ -181,8 +177,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     /**
      * 判断是否为管理员
-     * @param request
-     * @return
+     * @param request 客户端请求对象
+     * @return boolean
      */
     @Override
     public boolean isAdmin(HttpServletRequest request) {
@@ -192,26 +188,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.NOT_LOGIN,"未登录");
         }
         // 权限校验
-        if(user.getType().equals(ADMIN_USER)){
-            return true;
-        }
-        return false;
+        return user.getType().equals(ADMIN_USER);
     }
 
     /**
      * 判断是否为管理员
-     * @param loginUser
-     * @return
+     * @param loginUser 已登录用户信息
+     * @return boolean
      */
     @Override
     public boolean isAdmin(User loginUser) {
         if(loginUser == null ){
             throw new BusinessException(NOT_LOGIN);
         }
-        if(!loginUser.getType().equals(ADMIN_USER)){
-            return false;
-        }
-        return true;
+        return loginUser.getType().equals(ADMIN_USER);
     }
 
 
@@ -238,8 +228,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     /**
      * 获取当前用户信息
-     * @param request
-     * @return
+     * @param request 客户端请求对象
+     * @return 当前用户信息
      */
     @Override
     public User getCurrentUser(HttpServletRequest request) {
@@ -251,7 +241,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 查询数据库，获取最新用户信息
         User user = this.getById(currentUser.getId());
         // 判断账号状态
-        if(user.getStates() == USER_DISABLE){
+        if(USER_DISABLE.equals(user.getStates())){
             throw new BusinessException(USER_STATE_ERROR, "账号已被封禁");
         }
         return this.getSafeUser(user);
@@ -259,8 +249,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     /**
      * 注销
-     * @param request
-     * @return
+     * @param request 客户端请求对象
+     * @return 1-注销成功
      */
     @Override
     public Integer userLogOut(HttpServletRequest request) {
@@ -273,8 +263,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     /**
      * 通过标签搜索用户信息
-     * @param tagNameList
-     * @return
+     * @param tagNameList 标签 list
+     * @return userList
      */
     @Override
     public List<User> searchUsersByTags(List<String> tagNameList){
@@ -287,28 +277,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             queryWrapper.like(User::getTags,tagName);
         }
         List<User> userList = this.list(queryWrapper);
-        /*Gson gson = new Gson();
-        List<User> userList = this.list();
-        for (User user : userList) {
-            String tagStr = user.getTags();
-            if(StringUtils.isNotBlank(tagStr)){
-                Set<String> tempTagNames = gson.fromJson(tagStr, new TypeToken<Set<String>>(){}.getType());
-                for (String s : tagNamelist) {
-                    if(tempTagNames.contains(s)){
-                        users.add(user);
-                        break;
-                    }
-                }
-            }
-        }*/
         return userList.stream().map(this::getSafeUser).collect(Collectors.toList());
 
     }
 
     /**
      * 获取登录用户信息
-     * @param request
-     * @return
+     * @param request 客户端请求对象
+     * @return 登录用户信息
      */
     @Override
     public User getLoginUser(HttpServletRequest request) {
@@ -325,8 +301,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     /**
      * 更新用户
      *
-     * @param user
-     * @return
+     * @param user 更新用户信息
+     * @return boolean
      */
     @Override
     public Boolean updateUser(User user, HttpServletRequest request) {
@@ -349,8 +325,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     /**
      * 推荐用户
-     * @param request
-     * @return
+     * @param request 客户端请求对象
+     * @return 推荐用户分页对象
      */
     @Override
     public Page<User> recommendUsers(long pageSize, long pageNum, HttpServletRequest request) {

@@ -1,13 +1,16 @@
 package com.da.usercenter.common;
 
-/**
- * @author Da
- * @date 2023/6/12 16:00
- */
+import lombok.Data;
+import lombok.Getter;
 
 /**
  * 错误码
+ *
+ * @author Da
+ * &#064;date  2023/6/12 16:00
  */
+
+@Getter
 public enum ErrorCode {
 
     PARAMS_ERROR(40000, "请求参数错误", ""),
@@ -32,15 +35,4 @@ public enum ErrorCode {
         this.description = description;
     }
 
-    public Integer getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public String getDescription() {
-        return description;
-    }
 }

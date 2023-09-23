@@ -10,6 +10,8 @@
         select u.*
         from user_team ut
                  join user u on u.id = ut.user_id
-        where team_id = #{teamId};
+        where ut.is_delete = 0
+          and u.is_delete = 0
+          and team_id = #{teamId};
     </select>
 </mapper>

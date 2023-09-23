@@ -39,7 +39,7 @@ public class PreCacheJob {
     /**
      * 每天执行，预热推荐用户
      */
-    @Scheduled(cron = "0 10 13 ? * *") // 每天9:42执行
+    @Scheduled(cron = "0 42 9 ? * *") // 每天9:42执行
     public void doCacheRecommendUser(){
         RLock lock = redissonClient.getLock("precachejob:doCache:lock");
         try {
