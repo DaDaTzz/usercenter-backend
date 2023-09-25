@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -41,8 +42,9 @@ public class TeamController {
     }
 
     @GetMapping("/query")
-    public ResponseResult<Team> getTeamById(long teamId) {
-        Team team = teamService.getTeamById(teamId);
+    public ResponseResult<Team> getTeamById(long id) {
+        System.out.println(id);
+        Team team = teamService.getTeamById(id);
         return ResponseResult.success(team);
     }
 
@@ -76,6 +78,20 @@ public class TeamController {
         Boolean res = teamService.disbandTeam(teamDisband, request);
         return ResponseResult.success(res);
     }
+
+    @GetMapping("/list/create")
+    public ResponseResult<List<TeamUserVO>> listMyCreateTeams(TeamQuery teamQuery, HttpServletRequest request){
+        List<TeamUserVO> teamUserVOList = teamService.listMyCreateTeams(teamQuery, request);
+        return ResponseResult.success(teamUserVOList);
+    }
+
+    @GetMapping("/list/join")
+    public ResponseResult<List<TeamUserVO>> listMyJoinTeams(TeamQuery teamQuery, HttpServletRequest request){
+        List<TeamUserVO> teamUserVOList = teamService.listMyJoinTeams(teamQuery, request);
+        return ResponseResult.success(teamUserVOList);
+    }
+
+
 
 
 }

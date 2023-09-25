@@ -42,10 +42,9 @@ public interface TeamService extends IService<Team> {
 
     /**
      * 通过队伍 id 获取队伍信息
-     * @param teamId 队伍 id
      * @return 队伍信息
      */
-    Team getTeamById(long teamId);
+    Team getTeamById(long id);
 
     /**
      * 查询符合要求的队伍信息
@@ -85,4 +84,18 @@ public interface TeamService extends IService<Team> {
      * @return 是否解散成功
      */
     Boolean disbandTeam(TeamDisband teamDisband, HttpServletRequest request);
+
+    /**
+     * 获取当前用户创建的队伍信息
+     * @param request 客户端请求对象
+     * @return teamList
+     */
+    List<TeamUserVO> listMyCreateTeams(TeamQuery teamQuery, HttpServletRequest request);
+
+    /**
+     * 获取当前用户加入的队伍信息
+     * @param request
+     * @return
+     */
+    List<TeamUserVO> listMyJoinTeams(TeamQuery teamQuery,HttpServletRequest request);
 }

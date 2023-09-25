@@ -2,7 +2,9 @@ package com.da.usercenter.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -117,6 +119,12 @@ public interface UserService extends IService<User> {
     Page<User> recommendUsers(long pageSize, long pageNum, HttpServletRequest request);
 
 
-
+    /**
+     * 获取最匹配的用户
+     * @param num 推荐数量
+     * @param request 客户端请求对象
+     * @return 用户信息
+     */
+    List<User> matchUsers(long num, HttpServletRequest request);
 }
 

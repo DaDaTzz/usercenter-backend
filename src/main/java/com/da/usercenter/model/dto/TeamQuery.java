@@ -1,10 +1,11 @@
 package com.da.usercenter.model.dto;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.da.usercenter.common.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
+import java.util.List;
+
 
 /**
  * 队伍查询封装类
@@ -15,8 +16,12 @@ public class TeamQuery extends PageRequest {
     /**
      * id
      */
-    @TableId(type = IdType.AUTO)
     private Long id;
+
+    /**
+     * id列表
+     */
+    private List<Long> idList;
 
     /**
      * 用户id

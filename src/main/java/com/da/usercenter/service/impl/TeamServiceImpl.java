@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.da.usercenter.common.ErrorCode.*;
 
@@ -202,11 +203,11 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
-    public Team getTeamById(long teamId) {
-        if (teamId <= 0) {
+    public Team getTeamById(long id) {
+        if (id <= 0) {
             throw new BusinessException(PARAMS_ERROR);
         }
-        Team team = this.getById(teamId);
+        Team team = this.getById(id);
         if (team == null) {
             throw new BusinessException(PARAMS_ERROR, "用户不存在");
         }
@@ -307,6 +308,22 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             teamUserVO.setJoinUsers(userVOS);
             teamUserVOList.add(teamUserVO);
         }
+        // 判断当前用户是否已加入队伍
+        List<Long> teamIdList = teamUserVOList.stream().map(TeamUserVO::getId).collect(Collectors.toList());
+        LambdaQueryWrapper<UserTeam> userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        try{
+            User loginUser = userService.getLoginUser(request);
+            userTeamLambdaQueryWrapper.eq(UserTeam::getUserId, loginUser.getId());
+            userTeamLambdaQueryWrapper.in(UserTeam::getTeamId, teamIdList);
+            List<UserTeam> userTeamList = userTeamService.list(userTeamLambdaQueryWrapper);
+            // 已加入的队伍 id 集合
+            Set<Long> hasJoinTeamIdSet = userTeamList.stream().map(UserTeam::getTeamId).collect(Collectors.toSet());
+            teamUserVOList.forEach(teamUserVO -> {
+                boolean hasJoin = hasJoinTeamIdSet.contains(teamUserVO.getId());
+                teamUserVO.setHasJoin(hasJoin);
+            });
+        }catch (Exception e){}
+
         return teamUserVOList;
     }
 
@@ -326,7 +343,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
      *
      * @param teamJoinRequest 加入队伍请求参数
      * @param request         客户端请求对象
-     * @return boolean
+     * @return 是否加入成功 true or false
      */
     @Override
     public Boolean joinTeam(TeamJoinRequest teamJoinRequest, HttpServletRequest request) {
@@ -521,6 +538,210 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         // 删除队伍表数据
         return this.removeById(teamId);
 
+    }
+
+    @Override
+    public List<TeamUserVO> listMyCreateTeams(TeamQuery teamQuery,HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        if(loginUser == null){
+            throw new BusinessException(NOT_LOGIN);
+        }
+        if(loginUser.getId() <= 0){
+            throw new BusinessException(PARAMS_ERROR);
+        }
+        LambdaQueryWrapper<Team> teamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        teamLambdaQueryWrapper.eq(Team::getUserId, loginUser.getId());
+        // 实现队伍名称模糊匹配
+        if(StringUtils.isNotBlank(teamQuery.getSearchText())){
+            String searchText = teamQuery.getSearchText();
+            teamLambdaQueryWrapper.like(Team::getName, searchText);
+        }
+        List<Team> teamList = this.list(teamLambdaQueryWrapper);
+
+
+        if (CollectionUtils.isEmpty(teamList)) {
+            return new ArrayList<>();
+        }
+        ArrayList<TeamUserVO> teamUserVOList = new ArrayList<>();
+        LambdaQueryWrapper<User> userQueryWrapper = new LambdaQueryWrapper<>();
+        // 关联查询创建队伍的用户
+        for (Team team : teamList) {
+            Long userId = team.getUserId();
+            if (userId == null) {
+                continue;
+            }
+            userQueryWrapper.eq(User::getId, userId);
+            User user = userService.getById(userId);
+            UserVO userVO = new UserVO();
+            // 脱敏用户信息
+            if (user != null) {
+                BeanUtils.copyProperties(user, userVO);
+            }
+            // 脱敏队伍信息
+            TeamUserVO teamUserVO = new TeamUserVO();
+            BeanUtils.copyProperties(team, teamUserVO);
+            teamUserVO.setCreateUser(userVO);
+            // 获取已加入队伍的用户信息
+            Long teamId = team.getId();
+            List<User> joinUsers = userMapper.getUserListByTeamId(teamId);
+            ArrayList<UserVO> userVOS = new ArrayList<>();
+            if (!joinUsers.isEmpty()) {
+                for (User joinUser : joinUsers) {
+                    UserVO u = new UserVO();
+                    BeanUtils.copyProperties(joinUser, u);
+                    userVOS.add(u);
+                }
+            }
+            teamUserVO.setJoinUsers(userVOS);
+            teamUserVOList.add(teamUserVO);
+        }
+
+        // 判断当前用户是否已加入队伍
+        List<Long> teamIdList = teamUserVOList.stream().map(TeamUserVO::getId).collect(Collectors.toList());
+        LambdaQueryWrapper<UserTeam> userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        try{
+           loginUser = userService.getLoginUser(request);
+            userTeamLambdaQueryWrapper.eq(UserTeam::getUserId, loginUser.getId());
+            userTeamLambdaQueryWrapper.in(UserTeam::getTeamId, teamIdList);
+            List<UserTeam> userTeamList = userTeamService.list(userTeamLambdaQueryWrapper);
+            // 已加入的队伍 id 集合
+            Set<Long> hasJoinTeamIdSet = userTeamList.stream().map(UserTeam::getTeamId).collect(Collectors.toSet());
+            teamUserVOList.forEach(teamUserVO -> {
+                boolean hasJoin = hasJoinTeamIdSet.contains(teamUserVO.getId());
+                teamUserVO.setHasJoin(hasJoin);
+            });
+        }catch (Exception e){}
+        return teamUserVOList;
+    }
+
+    @Override
+    public List<TeamUserVO> listMyJoinTeams(TeamQuery teamQuery,HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        if(loginUser == null){
+            throw new BusinessException(NOT_LOGIN);
+        }
+        long userId = loginUser.getId();
+        if(userId <= 0){
+            throw new BusinessException(PARAMS_ERROR);
+        }
+        LambdaQueryWrapper<UserTeam> userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        userTeamLambdaQueryWrapper.eq(UserTeam::getUserId, userId);
+        LambdaQueryWrapper<Team> teamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        List<UserTeam> userTeamList = userTeamService.list(userTeamLambdaQueryWrapper);
+        if(userTeamList.isEmpty()){
+            return new ArrayList<>();
+        }
+        Iterator<UserTeam> iterator = userTeamList.iterator();
+
+        while(iterator.hasNext()){
+            UserTeam userTeam = iterator.next();
+            Long teamId = userTeam.getTeamId();
+            teamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+            teamLambdaQueryWrapper.eq(Team::getId, teamId);
+            Team team = this.getOne(teamLambdaQueryWrapper);
+            if(Objects.equals(team.getId(), userTeam.getTeamId()) && Objects.equals(team.getUserId(), userTeam.getUserId())){
+                iterator.remove();
+            }
+        }
+
+        ArrayList<Team> teams = new ArrayList<>();
+        for (UserTeam userTeam : userTeamList) {
+            teamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+            teamLambdaQueryWrapper.eq(Team::getId, userTeam.getTeamId());
+            Team team = this.getOne(teamLambdaQueryWrapper);
+            teams.add(team);
+        }
+
+        // 实现队伍名称模糊匹配
+        if(StringUtils.isNotBlank(teamQuery.getSearchText())){
+            ArrayList<TeamUserVO> teamUserVOS = new ArrayList<>();
+            for (Team team : teams) {
+                if(team.getName().contains(teamQuery.getSearchText())){
+                    Long uId = team.getUserId();
+                    if (uId == null) {
+                        break;
+                    }
+                    LambdaQueryWrapper<User> userQueryWrapper = new LambdaQueryWrapper<>();
+                    userQueryWrapper.eq(User::getId, userId);
+                    User user = userService.getById(userId);
+                    UserVO userVO = new UserVO();
+                    // 脱敏用户信息
+                    if (user != null) {
+                        BeanUtils.copyProperties(user, userVO);
+                    }
+                    // 脱敏队伍信息
+                    TeamUserVO teamUserVO = new TeamUserVO();
+                    BeanUtils.copyProperties(team, teamUserVO);
+                    teamUserVO.setCreateUser(userVO);
+                    // 获取已加入队伍的用户信息
+                    Long teamId = team.getId();
+                    List<User> joinUsers = userMapper.getUserListByTeamId(teamId);
+                    ArrayList<UserVO> userVOS = new ArrayList<>();
+                    if (!joinUsers.isEmpty()) {
+                        for (User joinUser : joinUsers) {
+                            UserVO u = new UserVO();
+                            BeanUtils.copyProperties(joinUser, u);
+                            userVOS.add(u);
+                        }
+                    }
+                    teamUserVO.setJoinUsers(userVOS);
+                    teamUserVOS.add(teamUserVO);
+                }
+            }
+            return teamUserVOS;
+        }
+
+        ArrayList<TeamUserVO> teamUserVOList = new ArrayList<>();
+        LambdaQueryWrapper<User> userQueryWrapper = new LambdaQueryWrapper<>();
+        // 关联查询创建队伍的用户
+        for (Team team : teams) {
+            Long uId = team.getUserId();
+            if (uId == null) {
+                continue;
+            }
+            userQueryWrapper.eq(User::getId, userId);
+            User user = userService.getById(userId);
+            UserVO userVO = new UserVO();
+            // 脱敏用户信息
+            if (user != null) {
+                BeanUtils.copyProperties(user, userVO);
+            }
+            // 脱敏队伍信息
+            TeamUserVO teamUserVO = new TeamUserVO();
+            BeanUtils.copyProperties(team, teamUserVO);
+            teamUserVO.setCreateUser(userVO);
+            // 获取已加入队伍的用户信息
+            Long teamId = team.getId();
+            List<User> joinUsers = userMapper.getUserListByTeamId(teamId);
+            ArrayList<UserVO> userVOS = new ArrayList<>();
+            if (!joinUsers.isEmpty()) {
+                for (User joinUser : joinUsers) {
+                    UserVO u = new UserVO();
+                    BeanUtils.copyProperties(joinUser, u);
+                    userVOS.add(u);
+                }
+            }
+            teamUserVO.setJoinUsers(userVOS);
+            teamUserVOList.add(teamUserVO);
+        }
+
+        // 判断当前用户是否已加入队伍
+        List<Long> teamIdList = teamUserVOList.stream().map(TeamUserVO::getId).collect(Collectors.toList());
+        userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        try{
+            loginUser = userService.getLoginUser(request);
+            userTeamLambdaQueryWrapper.eq(UserTeam::getUserId, loginUser.getId());
+            userTeamLambdaQueryWrapper.in(UserTeam::getTeamId, teamIdList);
+            List<UserTeam> UTList = userTeamService.list(userTeamLambdaQueryWrapper);
+            // 已加入的队伍 id 集合
+            Set<Long> hasJoinTeamIdSet = UTList.stream().map(UserTeam::getTeamId).collect(Collectors.toSet());
+            teamUserVOList.forEach(teamUserVO -> {
+                boolean hasJoin = hasJoinTeamIdSet.contains(teamUserVO.getId());
+                teamUserVO.setHasJoin(hasJoin);
+            });
+        }catch (Exception e){}
+
+        return teamUserVOList;
     }
 
 

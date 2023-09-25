@@ -5,7 +5,10 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
- 
+
+/**
+ * Mybatis plus 配置类
+ */
 @Configuration
 @MapperScan("com.da.usercenter.mapper") //可以将启动类中的注解移到此处
 public class MybatisPlusConfig {
