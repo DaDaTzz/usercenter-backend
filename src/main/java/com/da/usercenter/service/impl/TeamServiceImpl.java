@@ -306,6 +306,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
                 }
             }
             teamUserVO.setJoinUsers(userVOS);
+            teamUserVO.setHasJoinNum(joinUsers.size());
             teamUserVOList.add(teamUserVO);
         }
         // 判断当前用户是否已加入队伍
@@ -323,6 +324,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
                 teamUserVO.setHasJoin(hasJoin);
             });
         }catch (Exception e){}
+
 
         return teamUserVOList;
     }
@@ -593,6 +595,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
                 }
             }
             teamUserVO.setJoinUsers(userVOS);
+            teamUserVO.setHasJoinNum(joinUsers.size());
             teamUserVOList.add(teamUserVO);
         }
 
@@ -722,6 +725,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
                 }
             }
             teamUserVO.setJoinUsers(userVOS);
+            teamUserVO.setHasJoinNum(joinUsers.size());
             teamUserVOList.add(teamUserVO);
         }
 
