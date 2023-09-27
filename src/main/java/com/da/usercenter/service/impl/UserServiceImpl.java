@@ -29,6 +29,7 @@ import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -147,6 +148,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User safeUser = getSafeUser(user);
         // 记录用户登录态
         request.getSession().setAttribute(USER_LOGIN_STATE, safeUser);
+        User o = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        // User u = (User) o;
+        System.out.println(o);
+        if(o != null){
+            System.out.println(o.getLoginAccount()+"---");
+        }
         return safeUser;
     }
 
@@ -309,14 +316,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public User getLoginUser(HttpServletRequest request) {
-        if (request == null) {
-            return null;
-        }
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        if (userObj == null) {
+        User loginUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (loginUser == null) {
             throw new BusinessException(NOT_LOGIN);
         }
-        return (User) userObj;
+        return loginUser;
     }
 
     /**
