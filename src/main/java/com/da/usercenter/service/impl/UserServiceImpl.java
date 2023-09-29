@@ -23,12 +23,14 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
+
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
 import static com.da.usercenter.common.ErrorCode.*;
 import static com.da.usercenter.constant.UserConstant.*;
 
@@ -141,7 +143,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             log.info("loginAccount not matcher loginPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号和密码不匹配");
         }
-        return this.getSafeUser(user);
+        User safeUser = this.getSafeUser(user);
+        // 将登录信息存入redis 单点登录
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        valueOperations.set("user:login:" + user.getId(), safeUser, 30, TimeUnit.MINUTES);
+        return safeUser;
     }
 
     /**
@@ -181,7 +187,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user.getId() < 0) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "删除失败");
         }
-        return removeById(user.getId());
+        boolean res = removeById(user.getId());
+        redisTemplate.delete("user:login:" + user.getId());
+        return res;
     }
 
     /**
@@ -192,14 +200,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public boolean isAdmin(HttpServletRequest request) {
-        String token = request.getHeader("Authorization");
-        if (StringUtils.isBlank(token)) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
-        }
-        String userId = TokenUtils.getAccount(token);
-        User user = this.getById(userId);
+        User user = this.getCurrentUser(request);
         if (user == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
+            throw new BusinessException(PARAMS_ERROR);
         }
         // 权限校验
         return user.getType().equals(ADMIN_USER);
@@ -253,14 +256,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 //        User currentUser = (User) userObj;
         String token = request.getHeader("Authorization");
         if (StringUtils.isBlank(token)) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
+            throw new BusinessException(NOT_LOGIN, "未登录");
         }
-        if(!TokenUtils.verify(token)){
+        if (!TokenUtils.verify(token)) {
             throw new BusinessException(LOGIN_EXPIRE, "登录过期");
         }
         String userId = TokenUtils.getAccount(token);
-        // 查询数据库，获取最新用户信息
-        User user = this.getById(userId);
+        // 先从 redis 缓存中取，没有在查数据库
+        User user = (User) redisTemplate.opsForValue().get("user:login:" + userId);
+        if (user != null) {
+            if (USER_DISABLE.equals(user.getStates())) {
+                throw new BusinessException(USER_STATE_ERROR, "账号已被封禁");
+            }
+            return this.getSafeUser(user);
+        }
+        // 查询数据库
+        user = this.getById(userId);
         // 判断账号状态
         if (USER_DISABLE.equals(user.getStates())) {
             throw new BusinessException(USER_STATE_ERROR, "账号已被封禁");
@@ -275,12 +286,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return 1-注销成功
      */
     @Override
-    public Integer userLogOut(HttpServletRequest request) {
+    public Boolean userLogOut(HttpServletRequest request) {
         if (request == null) {
-            throw new BusinessException(NOT_LOGIN, "未登录");
+            throw new BusinessException(NULL_ERROR);
         }
-        request.getSession().removeAttribute(USER_LOGIN_STATE);
-        return 1;
+        String token = request.getHeader("Authorization");
+        if (StringUtils.isBlank(token)) {
+            throw new BusinessException(NOT_LOGIN);
+        }
+        if (!TokenUtils.verify(token)) {
+            throw new BusinessException(LOGIN_EXPIRE);
+        }
+        String userId = TokenUtils.getAccount(token);
+        // 移除 redis 中的用户信息
+        Boolean res = redisTemplate.delete("user:login:" + userId);
+        return res;
     }
 
     /**
@@ -308,26 +328,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return safeUsers;
     }
 
-    /**
-     * 获取登录用户信息
-     *
-     * @param request 客户端请求对象
-     * @return 登录用户信息
-     */
-    @Override
-    public User getLoginUser(HttpServletRequest request) {
-        String token = request.getHeader("Authorization");
-        if (StringUtils.isBlank(token)) {
-            throw new BusinessException(NOT_LOGIN);
-        }
-        if(!TokenUtils.verify(token)){
-            throw new BusinessException(LOGIN_EXPIRE, "登录过期");
-        }
-        String userId = TokenUtils.getAccount(token);
-        User user = this.getById(userId);
-        User loginUser = this.getSafeUser(user);
-        return loginUser;
-    }
 
     /**
      * 更新用户
@@ -342,9 +342,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(PARAMS_ERROR);
         }
         // 2.权限校验
-        User loginUser = this.getLoginUser(request);
+        User loginUser = this.getCurrentUser(request);
         // 校验是否为管理员或自己
         if (isAdmin(loginUser)) {
+            redisTemplate.delete("user:login:" + user.getId());
             return this.updateById(user);
         }
         if (loginUser.getId() != user.getId()) {
@@ -353,8 +354,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (StringUtils.isBlank(user.getNickname())) {
             user.setNickname("无名氏");
         }
-        // 3.触发更新
-        return this.updateById(user);
+        boolean res = this.updateById(user);
+        // 执行更新操作后删除 redis 中的缓存数据， 保证数据的一致性
+        redisTemplate.delete("user:login:" + user.getId());
+        return res;
     }
 
     /**
@@ -366,9 +369,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public Page<User> recommendUsers(long pageSize, long pageNum, HttpServletRequest request) {
         // 如果有缓存，直接从缓存中读取用户信息
-        User loginUser = this.getLoginUser(request);
+        User loginUser = null;
+        try {
+            loginUser = this.getCurrentUser(request);
+        } catch (Exception e) {
+            log.error("user login error", e);
+        }
         long userId = 0;
-        if(loginUser != null){
+        if (loginUser != null) {
             userId = loginUser.getId();
         }
         String redisKey = "user:recommend:" + userId;
@@ -394,7 +402,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (num <= 0 || num > 20) {
             throw new BusinessException(PARAMS_ERROR);
         }
-        User loginUser = this.getLoginUser(request);
+        User loginUser = this.getCurrentUser(request);
         if (loginUser == null) {
             throw new BusinessException(NOT_LOGIN);
         }
@@ -451,12 +459,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public List<User> getFriends(HttpServletRequest request) {
         // 非空
-        if (request == null){
+        if (request == null) {
             throw new BusinessException(NULL_ERROR);
         }
         // 是否登录
         User currentUser = this.getCurrentUser(request);
-        if(currentUser == null){
+        if (currentUser == null) {
             throw new BusinessException(NOT_LOGIN);
         }
         List<User> friends = userFriendMapper.getFriendsByUserId(currentUser.getId());

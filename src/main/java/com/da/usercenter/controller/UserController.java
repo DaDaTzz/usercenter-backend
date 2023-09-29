@@ -26,8 +26,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/user")
-//@CrossOrigin(origins = {"http://8.130.133.165"},allowCredentials = "true")
-@CrossOrigin(origins = {"http://127.0.0.1:5173"},allowCredentials = "true")
+@CrossOrigin(origins = {"http://8.130.133.165"},allowCredentials = "true")
+//@CrossOrigin(origins = {"http://127.0.0.1:5173"},allowCredentials = "true")
 public class UserController{
     @Resource
     private UserService userService;
@@ -78,8 +78,8 @@ public class UserController{
      * @return
      */
     @PostMapping("/logout")
-    public ResponseResult<Integer> userLogOut(HttpServletRequest request){
-        Integer result = userService.userLogOut(request);
+    public ResponseResult<Boolean> userLogOut(HttpServletRequest request){
+        Boolean result = userService.userLogOut(request);
         return ResponseResult.success(result, "注销成功");
     }
 

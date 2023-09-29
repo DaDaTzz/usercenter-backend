@@ -69,7 +69,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BusinessException(PARAMS_ERROR);
         }
         // 2.是否登录
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getCurrentUser(request);
         if (loginUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN);
         }
@@ -187,7 +187,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BusinessException(PARAMS_ERROR, "队伍不存在");
         }
         // 判断是否为管理员或自己
-        long loginUserId = userService.getLoginUser(request).getId();
+        long loginUserId = userService.getCurrentUser(request).getId();
         Team team = this.getById(teamUpdateRequest);
         if (!userService.isAdmin(request) && team.getUserId() != loginUserId) {
             throw new BusinessException(ErrorCode.NO_AUTH);
@@ -268,7 +268,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
                     queryWrapper.eq(Team::getStates, states);
                     // 非管理员只允许查看自己的私有队伍
                 } else if (!userService.isAdmin(request) && teamStatesEnum.equals(TeamStatesEnum.PRIVATE)) {
-                    User loginUser = userService.getLoginUser(request);
+                    User loginUser = userService.getCurrentUser(request);
                     queryWrapper.eq(Team::getStates, states).eq(Team::getUserId, loginUser.getId());
                     // 非管理员允许查看加密房间
                 } else if (!userService.isAdmin(request) && teamStatesEnum.equals(TeamStatesEnum.SECRET)) {
@@ -321,7 +321,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         List<Long> teamIdList = teamUserVOList.stream().map(TeamUserVO::getId).collect(Collectors.toList());
         LambdaQueryWrapper<UserTeam> userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
         try {
-            User loginUser = userService.getLoginUser(request);
+            User loginUser = userService.getCurrentUser(request);
             userTeamLambdaQueryWrapper.eq(UserTeam::getUserId, loginUser.getId());
             userTeamLambdaQueryWrapper.in(UserTeam::getTeamId, teamIdList);
             List<UserTeam> userTeamList = userTeamService.list(userTeamLambdaQueryWrapper);
@@ -459,7 +459,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         if (teamExitRequest == null) {
             throw new BusinessException(PARAMS_ERROR);
         }
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getCurrentUser(request);
         // 登录
         if (loginUser == null) {
             throw new BusinessException(NOT_LOGIN);
@@ -537,7 +537,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         if (teamDisband == null) {
             throw new BusinessException(NULL_ERROR);
         }
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getCurrentUser(request);
         // 是否登录
         if (loginUser == null) {
             throw new BusinessException(NOT_LOGIN);
@@ -552,7 +552,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BusinessException(PARAMS_ERROR, "队伍不存在");
         }
         // 是否为队长
-        long userId = userService.getLoginUser(request).getId();
+        long userId = userService.getCurrentUser(request).getId();
         if (team.getUserId() != userId) {
             throw new BusinessException(NO_AUTH, "非队长不允许解散队伍");
         }
@@ -570,7 +570,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 
     @Override
     public List<TeamUserVO> listMyCreateTeams(TeamQuery teamQuery, HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getCurrentUser(request);
         if (loginUser == null) {
             throw new BusinessException(NOT_LOGIN);
         }
@@ -629,7 +629,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         List<Long> teamIdList = teamUserVOList.stream().map(TeamUserVO::getId).collect(Collectors.toList());
         LambdaQueryWrapper<UserTeam> userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
         try {
-            loginUser = userService.getLoginUser(request);
+            loginUser = userService.getCurrentUser(request);
             userTeamLambdaQueryWrapper.eq(UserTeam::getUserId, loginUser.getId());
             userTeamLambdaQueryWrapper.in(UserTeam::getTeamId, teamIdList);
             List<UserTeam> userTeamList = userTeamService.list(userTeamLambdaQueryWrapper);
@@ -646,7 +646,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 
     @Override
     public List<TeamUserVO> listMyJoinTeams(TeamQuery teamQuery, HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getCurrentUser(request);
         if (loginUser == null) {
             throw new BusinessException(NOT_LOGIN);
         }
@@ -760,7 +760,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         List<Long> teamIdList = teamUserVOList.stream().map(TeamUserVO::getId).collect(Collectors.toList());
         userTeamLambdaQueryWrapper = new LambdaQueryWrapper<>();
         try {
-            loginUser = userService.getLoginUser(request);
+            loginUser = userService.getCurrentUser(request);
             userTeamLambdaQueryWrapper.eq(UserTeam::getUserId, loginUser.getId());
             userTeamLambdaQueryWrapper.in(UserTeam::getTeamId, teamIdList);
             List<UserTeam> UTList = userTeamService.list(userTeamLambdaQueryWrapper);

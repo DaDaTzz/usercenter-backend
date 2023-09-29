@@ -87,7 +87,7 @@ public interface UserService extends IService<User> {
      * @param request 客户端请求对象
      * @return 1-注销成功
      */
-    Integer userLogOut(HttpServletRequest request);
+    Boolean userLogOut(HttpServletRequest request);
 
 
     /**
@@ -95,12 +95,6 @@ public interface UserService extends IService<User> {
      */
     List<User> searchUsersByTags(List<String> tags);
 
-    /**
-     * 获取登录用户信息
-     * @param request 客户端请求对象
-     * @return 登录用户信息
-     */
-    User getLoginUser(HttpServletRequest request);
 
 
     /**

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,8 +20,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/team")
-//@CrossOrigin(origins = {"http://8.130.133.165"},allowCredentials = "true")
-@CrossOrigin(origins = {"http://127.0.0.1:5173"},allowCredentials = "true")
+@CrossOrigin(origins = {"http://8.130.133.165"},allowCredentials = "true")
+//@CrossOrigin(origins = {"http://127.0.0.1:5173"},allowCredentials = "true")
 public class TeamController {
 
     @Resource
