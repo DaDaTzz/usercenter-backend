@@ -189,6 +189,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         boolean res = removeById(user.getId());
         redisTemplate.delete("user:login:" + user.getId());
+        // 更新推荐用户列表 防止脏数据
+        Set<String> keys = redisTemplate.keys("user:recommend:" + "*");
+        redisTemplate.delete(keys);
         return res;
     }
 
@@ -205,7 +208,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(PARAMS_ERROR);
         }
         // 权限校验
-        return user.getType().equals(ADMIN_USER);
+        return ADMIN_USER.equals(user.getType());
     }
 
     /**
@@ -219,7 +222,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (loginUser == null) {
             throw new BusinessException(NOT_LOGIN);
         }
-        return loginUser.getType().equals(ADMIN_USER);
+        return ADMIN_USER.equals(loginUser.getType());
     }
 
 
@@ -258,22 +261,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (StringUtils.isBlank(token)) {
             throw new BusinessException(NOT_LOGIN, "未登录");
         }
-        if (!TokenUtils.verify(token)) {
-            throw new BusinessException(LOGIN_EXPIRE, "登录过期");
-        }
         String userId = TokenUtils.getAccount(token);
-        // 先从 redis 缓存中取，没有在查数据库
+        // 从缓存中获取用户信息
         User user = (User) redisTemplate.opsForValue().get("user:login:" + userId);
-        if (user != null) {
-            if (USER_DISABLE.equals(user.getStates())) {
-                throw new BusinessException(USER_STATE_ERROR, "账号已被封禁");
-            }
-            return this.getSafeUser(user);
+        if(user == null){
+            throw new BusinessException(LOGIN_EXPIRE);
         }
-        // 查询数据库
-        user = this.getById(userId);
-        // 判断账号状态
-        if (USER_DISABLE.equals(user.getStates())) {
+        if (user != null && USER_DISABLE.equals(user.getStates())) {
             throw new BusinessException(USER_STATE_ERROR, "账号已被封禁");
         }
         return this.getSafeUser(user);
@@ -344,20 +338,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 2.权限校验
         User loginUser = this.getCurrentUser(request);
         // 校验是否为管理员或自己
-        if (isAdmin(loginUser)) {
-            redisTemplate.delete("user:login:" + user.getId());
-            return this.updateById(user);
+        if (isAdmin(loginUser) || loginUser.getId() == user.getId()) {
+            boolean res = this.updateById(user);
+            if(res){
+                // 昵称不能为空
+                if (StringUtils.isBlank(user.getNickname())) {
+                    user.setNickname("无名氏");
+                    User newUserInfo = this.getById(user.getId());
+                    User safeUser = this.getSafeUser(newUserInfo);
+                    redisTemplate.opsForValue().set("user:login:" + user.getId(), safeUser, 30, TimeUnit.MINUTES);
+                }
+            }
+            // 执行更新操作后更新 redis 中的缓存数据， 保证数据的一致性
+            User newUserInfo = this.getById(user.getId());
+            User safeUser = this.getSafeUser(newUserInfo);
+            redisTemplate.opsForValue().set("user:login:" + user.getId(), safeUser, 30, TimeUnit.MINUTES);
+            // 更新推荐用户列表 防止数据不统一
+            Set<String> keys = redisTemplate.keys("user:recommend:" + "*");
+            redisTemplate.delete(keys);
+            return res;
         }
         if (loginUser.getId() != user.getId()) {
             throw new BusinessException(ErrorCode.NO_AUTH, "没有权限");
         }
-        if (StringUtils.isBlank(user.getNickname())) {
-            user.setNickname("无名氏");
-        }
-        boolean res = this.updateById(user);
-        // 执行更新操作后删除 redis 中的缓存数据， 保证数据的一致性
-        redisTemplate.delete("user:login:" + user.getId());
-        return res;
+        return false;
     }
 
     /**
