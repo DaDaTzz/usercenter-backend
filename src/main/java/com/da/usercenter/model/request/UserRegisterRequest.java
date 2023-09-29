@@ -24,7 +24,13 @@ public class UserRegisterRequest implements Serializable {
     private String loginPassword;
 
     /**
+     * 昵称
+     */
+    private String nickname;
+
+    /**
      * 二次输入密码
      */
     private String checkPassword;
+
 }

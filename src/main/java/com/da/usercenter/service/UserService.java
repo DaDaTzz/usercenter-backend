@@ -25,7 +25,7 @@ public interface UserService extends IService<User> {
      * @param checkPassword 校验密码
      * @return 用户id
      */
-    Long userRegister(String loginAccount, String loginPassword, String checkPassword);
+    Long userRegister(String loginAccount, String loginPassword, String checkPassword, String nickname);
 
     /**
      * 用户登录
@@ -126,5 +126,12 @@ public interface UserService extends IService<User> {
      * @return 用户信息
      */
     List<User> matchUsers(long num, HttpServletRequest request);
+
+    /**
+     * 获取好友列表
+     * @param request
+     * @return
+     */
+    List<User> getFriends(HttpServletRequest request);
 }
 

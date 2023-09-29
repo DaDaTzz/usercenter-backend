@@ -19,6 +19,7 @@ public enum ErrorCode {
     NOT_LOGIN(40003, "未登录", ""),
     DATABASE_ERROR(40004,"保存异常",""),
     USER_STATE_ERROR(40005, "账号封禁", ""),
+    LOGIN_EXPIRE(40006, "登录已过期", ""),
     SYSTEM_ERROR(50000, "系统内部异常", ""),
 
     ;

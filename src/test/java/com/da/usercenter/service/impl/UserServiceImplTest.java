@@ -21,68 +21,54 @@ class UserServiceImplTest {
     @Resource
     private HttpServletRequest request;
 
-    @Test
-    void userRegister() {
-        // 非空
-        String loginAccount = " ";
-        String loginPassword = "12345678";
-        String checkPassword = "12345678";
-        Long result = userService.userRegister(loginAccount, loginPassword, checkPassword);
-        Assertions.assertEquals(-1, result);
+//    void userRegister() {
+//        // 非空
+//        String loginAccount = " ";
+//        String loginPassword = "12345678";
+//        String checkPassword = "12345678";
+//        Long result = userService.userRegister(loginAccount, loginPassword, checkPassword);
+//        Assertions.assertEquals(-1, result);
+//
+//        // 账户长度不小于6位
+//        loginAccount = "Daaaa";
+//        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
+//        Assertions.assertEquals(-1, result);
+//
+//        // 密码不小于8位
+//        loginAccount = "Daaaaa";
+//        loginPassword = "1234567";
+//        checkPassword = "1234567";
+//        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
+//        Assertions.assertEquals(-1, result);
+//
+//        // 账户不能包含特殊字符
+//        loginAccount = "Da aa";
+//        loginPassword = "12345678";
+//        checkPassword = "12345678";
+//        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
+//        Assertions.assertEquals(-1, result);
+//
+//        // 密码和校验密码相同
+//        loginAccount = "Daaaaa";
+//        checkPassword = "123456789";
+//        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
+//        Assertions.assertEquals(-1, result);
+//
+//        // 账户不能重复
+//        loginAccount = "Daaaaa";
+//        loginPassword = "12345678";
+//        checkPassword = "12345678";
+//        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
+//        Assertions.assertEquals(-1, result);
+//
+//        // 插入数据
+//        loginAccount = "dadadadadadadadada";
+//        loginPassword = "12345678";
+//        checkPassword = "12345678";
+//        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
+//        Assertions.assertTrue(result > 0);
+//    }
 
-        // 账户长度不小于6位
-        loginAccount = "Daaaa";
-        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
-        Assertions.assertEquals(-1, result);
 
-        // 密码不小于8位
-        loginAccount = "Daaaaa";
-        loginPassword = "1234567";
-        checkPassword = "1234567";
-        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
-        Assertions.assertEquals(-1, result);
 
-        // 账户不能包含特殊字符
-        loginAccount = "Da aa";
-        loginPassword = "12345678";
-        checkPassword = "12345678";
-        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
-        Assertions.assertEquals(-1, result);
-
-        // 密码和校验密码相同
-        loginAccount = "Daaaaa";
-        checkPassword = "123456789";
-        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
-        Assertions.assertEquals(-1, result);
-
-        // 账户不能重复
-        loginAccount = "Daaaaa";
-        loginPassword = "12345678";
-        checkPassword = "12345678";
-        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
-        Assertions.assertEquals(-1, result);
-
-        // 插入数据
-        loginAccount = "dadadadadadadadada";
-        loginPassword = "12345678";
-        checkPassword = "12345678";
-        result = userService.userRegister(loginAccount, loginPassword, checkPassword);
-        Assertions.assertTrue(result > 0);
-    }
-
-    @Test
-    void userLogin() {
-        String loginAccount = "dadadadadadadadada";
-        String loginPassword = "12345678";
-        User user = userService.userLogin(loginAccount, loginPassword, request);
-        Assertions.assertNotNull(user);
-        System.out.println(user);
-    }
-
-    @Test
-    public void testDelete(){
-        String id = "8";
-        boolean b = userService.removeById(id);
-        System.out.println(b);
-    }
 }

@@ -7,35 +7,28 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.da.usercenter.common.ErrorCode;
-import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.exception.BusinessException;
+import com.da.usercenter.mapper.UserFriendMapper;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.User;
-import com.da.usercenter.model.vo.UserVO;
 import com.da.usercenter.service.UserService;
 import com.da.usercenter.utils.AlgorithmUtil;
+import com.da.usercenter.utils.TokenUtils;
 import com.google.gson.Gson;
-import com.google.gson.TypeAdapter;
 import com.google.gson.reflect.TypeToken;
-import io.swagger.models.auth.In;
 import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
-
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static com.da.usercenter.common.ErrorCode.*;
 import static com.da.usercenter.constant.UserConstant.*;
 
@@ -57,6 +50,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     public static final String SALT = "Da";
 
+    @Resource
+    private UserFriendMapper userFriendMapper;
+
 
     /**
      * 注册
@@ -67,9 +63,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return 创建成功的用户 id
      */
     @Override
-    public Long userRegister(String loginAccount, String loginPassword, String checkPassword) {
+    public Long userRegister(String loginAccount, String loginPassword, String checkPassword, String nickname) {
         // 非空校验
-        if (StrUtil.isAllBlank(loginAccount, loginPassword, checkPassword)) {
+        if (StrUtil.isBlank(loginAccount) || StrUtil.isBlank(loginPassword) || StrUtil.isBlank(checkPassword) || StrUtil.isBlank(nickname)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
         // 账户长度不小于6位
@@ -101,6 +97,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = new User();
         user.setLoginAccount(loginAccount);
         user.setLoginPassword(newPassword);
+        user.setNickname(nickname);
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "注册失败，未知原因");
@@ -144,17 +141,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             log.info("loginAccount not matcher loginPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号和密码不匹配");
         }
-        // 用户信息脱敏
-        User safeUser = getSafeUser(user);
-        // 记录用户登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, safeUser);
-        User o = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
-        // User u = (User) o;
-        System.out.println(o);
-        if(o != null){
-            System.out.println(o.getLoginAccount()+"---");
-        }
-        return safeUser;
+        return this.getSafeUser(user);
     }
 
     /**
@@ -205,8 +192,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public boolean isAdmin(HttpServletRequest request) {
-        Object attribute = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User) attribute;
+        String token = request.getHeader("Authorization");
+        if (StringUtils.isBlank(token)) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
+        }
+        String userId = TokenUtils.getAccount(token);
+        User user = this.getById(userId);
         if (user == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
         }
@@ -258,13 +249,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public User getCurrentUser(HttpServletRequest request) {
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User currentUser = (User) userObj;
-        if (currentUser == null) {
+//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+//        User currentUser = (User) userObj;
+        String token = request.getHeader("Authorization");
+        if (StringUtils.isBlank(token)) {
             throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
         }
+        String userId = TokenUtils.getAccount(token);
         // 查询数据库，获取最新用户信息
-        User user = this.getById(currentUser.getId());
+        User user = this.getById(userId);
         // 判断账号状态
         if (USER_DISABLE.equals(user.getStates())) {
             throw new BusinessException(USER_STATE_ERROR, "账号已被封禁");
@@ -304,8 +297,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             queryWrapper.like(User::getTags, tagName);
         }
         List<User> userList = this.list(queryWrapper);
-        return userList.stream().map(this::getSafeUser).collect(Collectors.toList());
-
+        ArrayList<User> safeUsers = new ArrayList<>();
+        for (User user : userList) {
+            User safeUser = this.getSafeUser(user);
+            safeUsers.add(safeUser);
+        }
+        return safeUsers;
     }
 
     /**
@@ -316,10 +313,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public User getLoginUser(HttpServletRequest request) {
-        User loginUser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
-        if (loginUser == null) {
+        String token = request.getHeader("Authorization");
+        if (StringUtils.isBlank(token)) {
             throw new BusinessException(NOT_LOGIN);
         }
+        String userId = TokenUtils.getAccount(token);
+        User user = this.getById(userId);
+        User loginUser = this.getSafeUser(user);
         return loginUser;
     }
 
@@ -344,6 +344,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (loginUser.getId() != user.getId()) {
             throw new BusinessException(ErrorCode.NO_AUTH, "没有权限");
         }
+        if (StringUtils.isBlank(user.getNickname())) {
+            user.setNickname("无名氏");
+        }
         // 3.触发更新
         return this.updateById(user);
     }
@@ -358,7 +361,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Page<User> recommendUsers(long pageSize, long pageNum, HttpServletRequest request) {
         // 如果有缓存，直接从缓存中读取用户信息
         User loginUser = this.getLoginUser(request);
-        long userId = loginUser.getId();
+        long userId = 0;
+        if(loginUser != null){
+            userId = loginUser.getId();
+        }
         String redisKey = "user:recommend:" + userId;
         ValueOperations valueOperations = redisTemplate.opsForValue();
         Page<User> userPage = (Page<User>) valueOperations.get(redisKey);
@@ -385,6 +391,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User loginUser = this.getLoginUser(request);
         if (loginUser == null) {
             throw new BusinessException(NOT_LOGIN);
+        }
+        if (loginUser.getTags() == null) {
+            throw new BusinessException(PARAMS_ERROR, "无标签，无法匹配");
         }
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.select(User::getId, User::getTags);
@@ -431,6 +440,28 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             finalUserList.add(userIdUserListMap.get(userId).get(0));
         }
         return finalUserList;
+    }
+
+    @Override
+    public List<User> getFriends(HttpServletRequest request) {
+        // 非空
+        if (request == null){
+            throw new BusinessException(NULL_ERROR);
+        }
+        // 是否登录
+        User currentUser = this.getCurrentUser(request);
+        if(currentUser == null){
+            throw new BusinessException(NOT_LOGIN);
+        }
+        List<User> friends = userFriendMapper.getFriendsByUserId(currentUser.getId());
+        ArrayList<User> friendList = new ArrayList<>();
+        // 用户信息脱敏
+        for (User friend : friends) {
+            User safeUser = this.getSafeUser(friend);
+            friendList.add(safeUser);
+        }
+        return friendList;
+
     }
 
 
