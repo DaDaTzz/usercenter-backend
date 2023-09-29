@@ -255,6 +255,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (StringUtils.isBlank(token)) {
             throw new BusinessException(ErrorCode.NOT_LOGIN, "未登录");
         }
+        if(!TokenUtils.verify(token)){
+            throw new BusinessException(LOGIN_EXPIRE, "登录过期");
+        }
         String userId = TokenUtils.getAccount(token);
         // 查询数据库，获取最新用户信息
         User user = this.getById(userId);
@@ -316,6 +319,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String token = request.getHeader("Authorization");
         if (StringUtils.isBlank(token)) {
             throw new BusinessException(NOT_LOGIN);
+        }
+        if(!TokenUtils.verify(token)){
+            throw new BusinessException(LOGIN_EXPIRE, "登录过期");
         }
         String userId = TokenUtils.getAccount(token);
         User user = this.getById(userId);
