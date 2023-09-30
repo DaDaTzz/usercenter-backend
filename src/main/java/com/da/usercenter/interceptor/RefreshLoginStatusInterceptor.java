@@ -12,6 +12,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.concurrent.TimeUnit;
 
 
+/**
+ * 刷新登录有效时间拦截器
+ */
 public class RefreshLoginStatusInterceptor implements HandlerInterceptor {
 
     private RedisTemplate redisTemplate;
@@ -23,17 +26,18 @@ public class RefreshLoginStatusInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         //System.out.println("登录过期时间已经刷新。。。。。。。。");
-        // 1.获取请求头中的token
         String token = request.getHeader("Authorization");
         if (StrUtil.isBlank(token)) {
             return true;
         }
-        // 2.基于 token 获取 redis 中的用户
         String userId = TokenUtils.getAccount(token);
         ValueOperations valueOperations = redisTemplate.opsForValue();
+        // 如果能获取到用户信息，说明已登录并且未过期，刷新过期时间
         User user = (User)valueOperations.get("user:login:" + userId);
-        valueOperations.set("user:login:" + userId, user, 30, TimeUnit.MINUTES);
-        // 8.放行
+        if(user != null){
+            valueOperations.set("user:login:" + userId, user, 30, TimeUnit.MINUTES);
+        }
+        // 放行
         return true;
     }
 

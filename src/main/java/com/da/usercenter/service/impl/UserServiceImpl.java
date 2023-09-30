@@ -264,7 +264,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String userId = TokenUtils.getAccount(token);
         // 从缓存中获取用户信息
         User user = (User) redisTemplate.opsForValue().get("user:login:" + userId);
-        if(user == null){
+        if (user == null) {
             throw new BusinessException(LOGIN_EXPIRE);
         }
         if (user != null && USER_DISABLE.equals(user.getStates())) {
@@ -340,7 +340,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 校验是否为管理员或自己
         if (isAdmin(loginUser) || loginUser.getId() == user.getId()) {
             boolean res = this.updateById(user);
-            if(res){
+            if (res) {
                 // 昵称不能为空
                 if (StringUtils.isBlank(user.getNickname())) {
                     user.setNickname("无名氏");
