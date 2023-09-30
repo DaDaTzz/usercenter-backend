@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.request.AddFriendRequest;
+import com.da.usercenter.model.request.DeleteFriendRequest;
 import com.da.usercenter.model.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
@@ -126,6 +128,10 @@ public interface UserService extends IService<User> {
      * @param request
      * @return
      */
-    List<User> getFriends(HttpServletRequest request);
+    List<UserVO> getFriends(HttpServletRequest request);
+
+    Boolean addFriend(AddFriendRequest addFriendRequest, HttpServletRequest request);
+
+    Boolean deleteFriend(DeleteFriendRequest deleteFriendRequest, HttpServletRequest request);
 }
 

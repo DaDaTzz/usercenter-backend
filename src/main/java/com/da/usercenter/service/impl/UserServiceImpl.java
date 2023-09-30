@@ -11,6 +11,11 @@ import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.mapper.UserFriendMapper;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.entity.UserFriend;
+import com.da.usercenter.model.request.AddFriendRequest;
+import com.da.usercenter.model.request.DeleteFriendRequest;
+import com.da.usercenter.model.vo.UserVO;
+import com.da.usercenter.service.UserFriendService;
 import com.da.usercenter.service.UserService;
 import com.da.usercenter.utils.AlgorithmUtil;
 import com.da.usercenter.utils.TokenUtils;
@@ -18,6 +23,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
@@ -46,6 +52,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Resource
     private RedisTemplate redisTemplate;
+
+    @Resource
+    private UserFriendService userFriendService;
 
     /**
      * 盐值，混淆密码
@@ -461,7 +470,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public List<User> getFriends(HttpServletRequest request) {
+    public List<UserVO> getFriends(HttpServletRequest request) {
         // 非空
         if (request == null) {
             throw new BusinessException(NULL_ERROR);
@@ -472,14 +481,81 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(NOT_LOGIN);
         }
         List<User> friends = userFriendMapper.getFriendsByUserId(currentUser.getId());
-        ArrayList<User> friendList = new ArrayList<>();
+        ArrayList<UserVO> friendList = new ArrayList<>();
         // 用户信息脱敏
         for (User friend : friends) {
+            UserVO userVO = new UserVO();
             User safeUser = this.getSafeUser(friend);
-            friendList.add(safeUser);
+            BeanUtils.copyProperties(safeUser, userVO);
+            friendList.add(userVO);
         }
         return friendList;
 
+    }
+
+
+    /**
+     * 添加好友
+     * @param addFriendRequest
+     * @param request
+     * @return
+     */
+    @Override
+    public Boolean addFriend(AddFriendRequest addFriendRequest, HttpServletRequest request) {
+        Long id = addFriendRequest.getId();
+        if(id == null || id <= 0){
+            throw new BusinessException(PARAMS_ERROR);
+        }
+        User currentUser = this.getCurrentUser(request);
+        if(currentUser == null){
+            throw new BusinessException(NOT_LOGIN);
+        }
+        // 不能添加自己
+        if(id == currentUser.getId()){
+            throw new BusinessException(PARAMS_ERROR, "不能添加自己为好友！");
+        }
+        // 不能重复添加
+        long userId = currentUser.getId();
+        LambdaQueryWrapper<UserFriend> userFriendLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        userFriendLambdaQueryWrapper.eq(UserFriend::getUserId, userId).eq(UserFriend::getFriendId, id);
+        int count = userFriendService.count(userFriendLambdaQueryWrapper);
+        if(count >= 1){
+            throw new BusinessException(PARAMS_ERROR, "该用户已在您的好友列表中");
+        }
+        // 插入数据
+        UserFriend userFriend = new UserFriend();
+        userFriend.setUserId(userId);
+        userFriend.setFriendId(id);
+        return userFriendService.save(userFriend);
+    }
+
+
+    /**
+     * 删除好友
+     * @param deleteFriendRequest
+     * @param request
+     * @return
+     */
+    @Override
+    public Boolean deleteFriend(DeleteFriendRequest deleteFriendRequest, HttpServletRequest request) {
+        Long id = deleteFriendRequest.getId();
+        if(id == null || id <= 0){
+            throw new BusinessException(PARAMS_ERROR);
+        }
+        User currentUser = this.getCurrentUser(request);
+        if(currentUser == null){
+            throw new BusinessException(NOT_LOGIN);
+        }
+        // 是否在好友列表中
+        long userId = currentUser.getId();
+        LambdaQueryWrapper<UserFriend> userFriendLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        userFriendLambdaQueryWrapper.eq(UserFriend::getUserId, userId).eq(UserFriend::getFriendId, id);
+        int count = userFriendService.count(userFriendLambdaQueryWrapper);
+        if(count <= 0){
+            throw new BusinessException(PARAMS_ERROR,"对方不是您的好友，无法删除！");
+        }
+        // 删除
+        return userFriendService.remove(userFriendLambdaQueryWrapper);
     }
 
 

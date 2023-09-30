@@ -8,8 +8,11 @@ import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.request.AddFriendRequest;
+import com.da.usercenter.model.request.DeleteFriendRequest;
 import com.da.usercenter.model.request.UserLoginRequest;
 import com.da.usercenter.model.request.UserRegisterRequest;
+import com.da.usercenter.model.vo.UserVO;
 import com.da.usercenter.service.UserService;
 import com.da.usercenter.utils.TokenUtils;
 import org.springframework.util.CollectionUtils;
@@ -178,13 +181,29 @@ public class UserController{
      * @return
      */
     @GetMapping("/search/friends")
-    public ResponseResult<List<User>> getFriends(HttpServletRequest request){
-        List<User> friendList = userService.getFriends(request);
+    public ResponseResult<List<UserVO>> getFriends(HttpServletRequest request){
+        List<UserVO> friendList = userService.getFriends(request);
         return ResponseResult.success(friendList);
     }
 
 
+    /**
+     * 添加好友
+     * @param id
+     * @param request
+     * @return
+     */
+    @PostMapping("/addFriend")
+    public ResponseResult<Boolean> addFriend(@RequestBody AddFriendRequest addFriendRequest, HttpServletRequest request){
+        Boolean res = userService.addFriend(addFriendRequest, request);
+        return ResponseResult.success(res);
+    }
 
+    @PostMapping("/deleteFriend")
+    public ResponseResult<Boolean> deleteFriend(@RequestBody DeleteFriendRequest deleteFriendRequest, HttpServletRequest request){
+        Boolean res = userService.deleteFriend(deleteFriendRequest, request);
+        return ResponseResult.success(res);
+    }
 
 
 }

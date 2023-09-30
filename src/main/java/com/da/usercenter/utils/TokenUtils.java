@@ -15,7 +15,7 @@ public class TokenUtils {
     /**
      * 设置过期时间
      */
-    private static final long EXPIRE_DATE = 1800000; // 30分钟
+    private static final long EXPIRE_DATE = 999999999; // 30分钟
     /**
      * token秘钥
      */
