@@ -102,3 +102,5 @@ CREATE TABLE `user_friend`
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci COMMENT ='好友关系';
 
+
+

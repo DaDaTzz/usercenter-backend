@@ -8,10 +8,7 @@ import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.model.entity.User;
-import com.da.usercenter.model.request.AddFriendRequest;
-import com.da.usercenter.model.request.DeleteFriendRequest;
-import com.da.usercenter.model.request.UserLoginRequest;
-import com.da.usercenter.model.request.UserRegisterRequest;
+import com.da.usercenter.model.request.*;
 import com.da.usercenter.model.vo.UserVO;
 import com.da.usercenter.service.UserService;
 import com.da.usercenter.utils.TokenUtils;
@@ -188,8 +185,8 @@ public class UserController{
 
 
     /**
-     * 添加好友
-     * @param id
+     * 加好友
+     * @param addFriendRequest
      * @param request
      * @return
      */
@@ -199,9 +196,27 @@ public class UserController{
         return ResponseResult.success(res);
     }
 
+    /**
+     * 删除好友
+     * @param deleteFriendRequest
+     * @param request
+     * @return
+     */
     @PostMapping("/deleteFriend")
     public ResponseResult<Boolean> deleteFriend(@RequestBody DeleteFriendRequest deleteFriendRequest, HttpServletRequest request){
         Boolean res = userService.deleteFriend(deleteFriendRequest, request);
+        return ResponseResult.success(res);
+    }
+
+    /**
+     * 更新标签
+     * @param updateTagRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/updateTag")
+    public ResponseResult<Boolean> updateTag(@RequestBody UpdateTagRequest updateTagRequest,HttpServletRequest request){
+        Boolean res = userService.updateTag(updateTagRequest, request);
         return ResponseResult.success(res);
     }
 

@@ -6,6 +6,7 @@ import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.model.entity.User;
 import com.da.usercenter.model.request.AddFriendRequest;
 import com.da.usercenter.model.request.DeleteFriendRequest;
+import com.da.usercenter.model.request.UpdateTagRequest;
 import com.da.usercenter.model.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
@@ -130,8 +131,28 @@ public interface UserService extends IService<User> {
      */
     List<UserVO> getFriends(HttpServletRequest request);
 
+    /**
+     * 添加好友
+     * @param addFriendRequest
+     * @param request
+     * @return
+     */
     Boolean addFriend(AddFriendRequest addFriendRequest, HttpServletRequest request);
 
+    /**
+     * 删除好友
+     * @param deleteFriendRequest
+     * @param request
+     * @return
+     */
     Boolean deleteFriend(DeleteFriendRequest deleteFriendRequest, HttpServletRequest request);
+
+    /**
+     * 更新标签
+     * @param updateTagRequest
+     * @param request
+     * @return
+     */
+    Boolean updateTag(UpdateTagRequest updateTagRequest, HttpServletRequest request);
 }
 

@@ -14,6 +14,7 @@ import com.da.usercenter.model.entity.User;
 import com.da.usercenter.model.entity.UserFriend;
 import com.da.usercenter.model.request.AddFriendRequest;
 import com.da.usercenter.model.request.DeleteFriendRequest;
+import com.da.usercenter.model.request.UpdateTagRequest;
 import com.da.usercenter.model.vo.UserVO;
 import com.da.usercenter.service.UserFriendService;
 import com.da.usercenter.service.UserService;
@@ -96,6 +97,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 密码和校验密码相同
         if (!loginPassword.equals(checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次密码输入不同");
+        }
+        // 昵称不为空
+        if(StringUtils.isBlank(nickname)){
+            throw new BusinessException(NULL_ERROR, "昵称能为空");
         }
         // 账户不能重复
         Integer count = this.lambdaQuery().eq(User::getLoginAccount, loginAccount).count();
@@ -556,6 +561,44 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // 删除
         return userFriendService.remove(userFriendLambdaQueryWrapper);
+    }
+
+    /**
+     * 更新标签
+     * @param updateTagRequest
+     * @param request
+     * @return
+     */
+    @Override
+    public Boolean updateTag(UpdateTagRequest updateTagRequest, HttpServletRequest request) {
+        User currentUser = this.getCurrentUser(request);
+        if(currentUser == null){
+            throw new BusinessException(NOT_LOGIN, "未登录");
+        }
+        String[] tags = updateTagRequest.getTags();
+        if(tags == null || tags.length == 0){
+            throw new BusinessException(NULL_ERROR, "标签不能为空");
+        }
+        if(tags.length > 10){
+            throw new BusinessException(PARAMS_ERROR, "最多设置十个标签");
+        }
+        // 将数组转成 json 字符串
+        Gson gson = new Gson();
+        String tagJsonStr = gson.toJson(tags);
+        User user = new User();
+        user.setId(currentUser.getId());
+        user.setTags(tagJsonStr);
+        boolean res = updateById(user);
+        if(res){
+            // 执行更新操作后更新 redis 中的缓存数据， 保证数据的一致性
+            User newUserInfo = this.getById(user.getId());
+            User safeUser = this.getSafeUser(newUserInfo);
+            redisTemplate.opsForValue().set("user:login:" + user.getId(), safeUser, 30, TimeUnit.MINUTES);
+            // 更新推荐用户列表 防止数据不统一
+            Set<String> keys = redisTemplate.keys("user:recommend:" + "*");
+            redisTemplate.delete(keys);
+        }
+        return false;
     }
 
 
