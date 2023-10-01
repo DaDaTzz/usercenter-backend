@@ -582,11 +582,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(tags.length > 10){
             throw new BusinessException(PARAMS_ERROR, "最多设置十个标签");
         }
+        User user = new User();
+        user.setId(currentUser.getId());
         // 将数组转成 json 字符串
         Gson gson = new Gson();
         String tagJsonStr = gson.toJson(tags);
-        User user = new User();
-        user.setId(currentUser.getId());
         user.setTags(tagJsonStr);
         boolean res = updateById(user);
         if(res){
