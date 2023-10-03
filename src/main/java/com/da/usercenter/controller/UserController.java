@@ -3,16 +3,13 @@ package com.da.usercenter.controller;
 
 
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.common.ResponseResult;
 import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.model.entity.User;
 import com.da.usercenter.model.request.*;
-import com.da.usercenter.model.vo.UserVO;
 import com.da.usercenter.service.UserService;
 import com.da.usercenter.utils.TokenUtils;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -95,18 +92,7 @@ public class UserController{
         return ResponseResult.success(result);
     }
 
-    /**
-     * 推荐用户
-     * @param pageSize
-     * @param pageNum
-     * @param request
-     * @return
-     */
-    @GetMapping("/recommend")
-    public ResponseResult<Page<User>> recommendUsers(long pageSize, long pageNum, HttpServletRequest request){
-        Page<User> userPage = userService.recommendUsers(pageSize, pageNum, request);
-        return ResponseResult.success(userPage);
-    }
+
 
     /**
      * 删除用户
@@ -146,79 +132,12 @@ public class UserController{
         return ResponseResult.success(res);
     }
 
-    /**
-     * 通过标签查询用户信息
-     * @param tagNameList
-     * @return
-     */
-    @GetMapping("/search/tags")
-    public ResponseResult<List<User>> getUserByTags(@RequestParam(required = false) List<String> tagNameList){
-        if(CollectionUtils.isEmpty(tagNameList)){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        List<User> userList = userService.searchUsersByTags(tagNameList);
-        return ResponseResult.success(userList);
-    }
-
-    /**
-     * 匹配相似用户
-     * @param num
-     * @param request
-     * @return
-     */
-    @GetMapping("/match")
-    public ResponseResult<List<User>> matchUsers(long num, HttpServletRequest request){
-        List<User> userList = userService.matchUsers(num, request);
-        return ResponseResult.success(userList);
-    }
-
-    /**
-     * 获取好友信息
-     * @param request
-     * @return
-     */
-    @GetMapping("/search/friends")
-    public ResponseResult<List<UserVO>> getFriends(HttpServletRequest request){
-        List<UserVO> friendList = userService.getFriends(request);
-        return ResponseResult.success(friendList);
-    }
 
 
-    /**
-     * 加好友
-     * @param addFriendRequest
-     * @param request
-     * @return
-     */
-    @PostMapping("/addFriend")
-    public ResponseResult<Boolean> addFriend(@RequestBody AddFriendRequest addFriendRequest, HttpServletRequest request){
-        Boolean res = userService.addFriend(addFriendRequest, request);
-        return ResponseResult.success(res);
-    }
 
-    /**
-     * 删除好友
-     * @param deleteFriendRequest
-     * @param request
-     * @return
-     */
-    @PostMapping("/deleteFriend")
-    public ResponseResult<Boolean> deleteFriend(@RequestBody DeleteFriendRequest deleteFriendRequest, HttpServletRequest request){
-        Boolean res = userService.deleteFriend(deleteFriendRequest, request);
-        return ResponseResult.success(res);
-    }
 
-    /**
-     * 更新标签
-     * @param updateTagRequest
-     * @param request
-     * @return
-     */
-    @PostMapping("/updateTag")
-    public ResponseResult<Boolean> updateTag(@RequestBody UpdateTagRequest updateTagRequest,HttpServletRequest request){
-        Boolean res = userService.updateTag(updateTagRequest, request);
-        return ResponseResult.success(res);
-    }
+
+
 
 
 }

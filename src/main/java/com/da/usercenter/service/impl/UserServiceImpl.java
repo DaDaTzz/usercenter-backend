@@ -2,21 +2,14 @@ package com.da.usercenter.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.exception.BusinessException;
-import com.da.usercenter.mapper.UserFriendMapper;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.User;
-import com.da.usercenter.model.entity.UserFriend;
-import com.da.usercenter.model.request.AddFriendRequest;
-import com.da.usercenter.model.request.DeleteFriendRequest;
-import com.da.usercenter.model.request.UpdateTagRequest;
 import com.da.usercenter.model.vo.UserVO;
-import com.da.usercenter.service.UserFriendService;
 import com.da.usercenter.service.UserService;
 import com.da.usercenter.utils.AlgorithmUtil;
 import com.da.usercenter.utils.TokenUtils;
@@ -54,16 +47,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Resource
     private RedisTemplate redisTemplate;
 
-    @Resource
-    private UserFriendService userFriendService;
 
     /**
      * 盐值，混淆密码
      */
     public static final String SALT = "Da";
 
-    @Resource
-    private UserFriendMapper userFriendMapper;
 
 
     /**
@@ -311,30 +300,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return res;
     }
 
-    /**
-     * 通过标签搜索用户信息
-     *
-     * @param tagNameList 标签 list
-     * @return userList
-     */
-    @Override
-    public List<User> searchUsersByTags(List<String> tagNameList) {
-        if (CollectionUtils.isEmpty(tagNameList)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        // ArrayList<User> users = new ArrayList<>();
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        for (String tagName : tagNameList) {
-            queryWrapper.like(User::getTags, tagName);
-        }
-        List<User> userList = this.list(queryWrapper);
-        ArrayList<User> safeUsers = new ArrayList<>();
-        for (User user : userList) {
-            User safeUser = this.getSafeUser(user);
-            safeUsers.add(safeUser);
-        }
-        return safeUsers;
-    }
+
 
 
     /**
@@ -378,228 +344,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return false;
     }
 
-    /**
-     * 推荐用户
-     *
-     * @param request 客户端请求对象
-     * @return 推荐用户分页对象
-     */
-    @Override
-    public Page<User> recommendUsers(long pageSize, long pageNum, HttpServletRequest request) {
-        // 如果有缓存，直接从缓存中读取用户信息
-        User loginUser = null;
-        try {
-            loginUser = this.getCurrentUser(request);
-        } catch (Exception e) {
-            log.error("user login error", e);
-        }
-        long userId = 0;
-        if (loginUser != null) {
-            userId = loginUser.getId();
-        }
-        String redisKey = "user:recommend:" + userId;
-        ValueOperations valueOperations = redisTemplate.opsForValue();
-        Page<User> userPage = (Page<User>) valueOperations.get(redisKey);
-        if (userPage != null) {
-            return userPage;
-        }
-        // 无缓存，查询数据库
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        userPage = this.page(new Page<>(pageNum, pageSize), queryWrapper);
-        // 将读到的数据存入缓存中
-        try {
-            valueOperations.set(redisKey, userPage, 30, TimeUnit.MINUTES);
-        } catch (Exception e) {
-            log.error("redis set key error", e);
-        }
-        return userPage;
-    }
-
-    @Override
-    public List<User> matchUsers(long num, HttpServletRequest request) {
-        if (num <= 0 || num > 20) {
-            throw new BusinessException(PARAMS_ERROR);
-        }
-        User loginUser = this.getCurrentUser(request);
-        if (loginUser == null) {
-            throw new BusinessException(NOT_LOGIN);
-        }
-        if (loginUser.getTags() == null) {
-            throw new BusinessException(PARAMS_ERROR, "无标签，无法匹配");
-        }
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.select(User::getId, User::getTags);
-        queryWrapper.isNotNull(User::getTags);
-        List<User> userList = this.list(queryWrapper);
-        String tags = loginUser.getTags();
-        Gson gson = new Gson();
-        List<String> tagList = gson.fromJson(tags, new TypeToken<List<String>>() {
-        }.getType());
-        // 用户列表的下标 => 相似度
-        List<Pair<User, Long>> list = new ArrayList<>();
-        // 依次计算所有用户和当前用户的相似度
-        for (int i = 0; i < userList.size(); i++) {
-            User user = userList.get(i);
-            String userTags = user.getTags();
-            // 无标签或者为当前用户自己
-            if (StringUtils.isBlank(userTags) || user.getId() == loginUser.getId()) {
-                continue;
-            }
-            List<String> userTagList = gson.fromJson(userTags, new TypeToken<List<String>>() {
-            }.getType());
-            // 计算分数
-            long distance = AlgorithmUtil.minDistance(tagList, userTagList);
-            list.add(new Pair<>(user, distance));
-        }
-        // 按编辑距离由小到大排序
-        List<Pair<User, Long>> topUserPairList = list.stream()
-                .sorted((a, b) -> (int) (a.getValue() - b.getValue()))
-                .limit(num)
-                .collect(Collectors.toList());
-        // 原本顺序的 userId 列表
-        List<Long> userIdList = topUserPairList.stream().map(pair -> pair.getKey().getId()).collect(Collectors.toList());
-        LambdaQueryWrapper<User> userQueryWrapper = new LambdaQueryWrapper<>();
-        userQueryWrapper.in(User::getId, userIdList);
-        // 1, 3, 2
-        // User1、User2、User3
-        // 1 => User1, 2 => User2, 3 => User3
-        Map<Long, List<User>> userIdUserListMap = this.list(userQueryWrapper)
-                .stream()
-                .map(user -> getSafeUser(user))
-                .collect(Collectors.groupingBy(User::getId));
-        List<User> finalUserList = new ArrayList<>();
-        for (Long userId : userIdList) {
-            finalUserList.add(userIdUserListMap.get(userId).get(0));
-        }
-        return finalUserList;
-    }
-
-    @Override
-    public List<UserVO> getFriends(HttpServletRequest request) {
-        // 非空
-        if (request == null) {
-            throw new BusinessException(NULL_ERROR);
-        }
-        // 是否登录
-        User currentUser = this.getCurrentUser(request);
-        if (currentUser == null) {
-            throw new BusinessException(NOT_LOGIN);
-        }
-        List<User> friends = userFriendMapper.getFriendsByUserId(currentUser.getId());
-        ArrayList<UserVO> friendList = new ArrayList<>();
-        // 用户信息脱敏
-        for (User friend : friends) {
-            UserVO userVO = new UserVO();
-            User safeUser = this.getSafeUser(friend);
-            BeanUtils.copyProperties(safeUser, userVO);
-            friendList.add(userVO);
-        }
-        return friendList;
-
-    }
 
 
-    /**
-     * 添加好友
-     * @param addFriendRequest
-     * @param request
-     * @return
-     */
-    @Override
-    public Boolean addFriend(AddFriendRequest addFriendRequest, HttpServletRequest request) {
-        Long id = addFriendRequest.getId();
-        if(id == null || id <= 0){
-            throw new BusinessException(PARAMS_ERROR);
-        }
-        User currentUser = this.getCurrentUser(request);
-        if(currentUser == null){
-            throw new BusinessException(NOT_LOGIN);
-        }
-        // 不能添加自己
-        if(id == currentUser.getId()){
-            throw new BusinessException(PARAMS_ERROR, "不能添加自己为好友！");
-        }
-        // 不能重复添加
-        long userId = currentUser.getId();
-        LambdaQueryWrapper<UserFriend> userFriendLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        userFriendLambdaQueryWrapper.eq(UserFriend::getUserId, userId).eq(UserFriend::getFriendId, id);
-        int count = userFriendService.count(userFriendLambdaQueryWrapper);
-        if(count >= 1){
-            throw new BusinessException(PARAMS_ERROR, "该用户已在您的好友列表中");
-        }
-        // 插入数据
-        UserFriend userFriend = new UserFriend();
-        userFriend.setUserId(userId);
-        userFriend.setFriendId(id);
-        return userFriendService.save(userFriend);
-    }
 
 
-    /**
-     * 删除好友
-     * @param deleteFriendRequest
-     * @param request
-     * @return
-     */
-    @Override
-    public Boolean deleteFriend(DeleteFriendRequest deleteFriendRequest, HttpServletRequest request) {
-        Long id = deleteFriendRequest.getId();
-        if(id == null || id <= 0){
-            throw new BusinessException(PARAMS_ERROR);
-        }
-        User currentUser = this.getCurrentUser(request);
-        if(currentUser == null){
-            throw new BusinessException(NOT_LOGIN);
-        }
-        // 是否在好友列表中
-        long userId = currentUser.getId();
-        LambdaQueryWrapper<UserFriend> userFriendLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        userFriendLambdaQueryWrapper.eq(UserFriend::getUserId, userId).eq(UserFriend::getFriendId, id);
-        int count = userFriendService.count(userFriendLambdaQueryWrapper);
-        if(count <= 0){
-            throw new BusinessException(PARAMS_ERROR,"对方不是您的好友，无法删除！");
-        }
-        // 删除
-        return userFriendService.remove(userFriendLambdaQueryWrapper);
-    }
 
-    /**
-     * 更新标签
-     * @param updateTagRequest
-     * @param request
-     * @return
-     */
-    @Override
-    public Boolean updateTag(UpdateTagRequest updateTagRequest, HttpServletRequest request) {
-        User currentUser = this.getCurrentUser(request);
-        if(currentUser == null){
-            throw new BusinessException(NOT_LOGIN, "未登录");
-        }
-        String[] tags = updateTagRequest.getTags();
-        if(tags == null || tags.length == 0){
-            throw new BusinessException(NULL_ERROR, "标签不能为空");
-        }
-        if(tags.length > 10){
-            throw new BusinessException(PARAMS_ERROR, "最多设置十个标签");
-        }
-        User user = new User();
-        user.setId(currentUser.getId());
-        // 将数组转成 json 字符串
-        Gson gson = new Gson();
-        String tagJsonStr = gson.toJson(tags);
-        user.setTags(tagJsonStr);
-        boolean res = updateById(user);
-        if(res){
-            // 执行更新操作后更新 redis 中的缓存数据， 保证数据的一致性
-            User newUserInfo = this.getById(user.getId());
-            User safeUser = this.getSafeUser(newUserInfo);
-            redisTemplate.opsForValue().set("user:login:" + user.getId(), safeUser, 30, TimeUnit.MINUTES);
-            // 更新推荐用户列表 防止数据不统一
-            Set<String> keys = redisTemplate.keys("user:recommend:" + "*");
-            redisTemplate.delete(keys);
-        }
-        return false;
-    }
 
 
 }
