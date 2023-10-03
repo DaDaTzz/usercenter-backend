@@ -12,7 +12,6 @@ import com.da.usercenter.service.UserTeamService;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Profile;
 
 import javax.annotation.Resource;
 import java.util.*;
