@@ -9,6 +9,8 @@ import com.da.usercenter.common.ErrorCode;
 import com.da.usercenter.exception.BusinessException;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.request.DeleteRequest;
+import com.da.usercenter.model.request.QueryUserByConditionRequest;
 import com.da.usercenter.model.vo.UserVO;
 import com.da.usercenter.service.UserService;
 import com.da.usercenter.utils.AlgorithmUtil;
@@ -23,6 +25,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -52,7 +55,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 盐值，混淆密码
      */
     public static final String SALT = "Da";
-
 
 
     /**
@@ -88,7 +90,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次密码输入不同");
         }
         // 昵称不为空
-        if(StringUtils.isBlank(nickname)){
+        if (StringUtils.isBlank(nickname)) {
             throw new BusinessException(NULL_ERROR, "昵称能为空");
         }
         // 账户不能重复
@@ -177,21 +179,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     /**
      * 删除用户
      *
-     * @param user    用户信息
-     * @param request 客户端请求对象
+     * @param deleteRequest id
+     * @param request       客户端请求对象
      * @return boolean
      */
     @Override
-    public boolean deleteUser(User user, HttpServletRequest request) {
+    public boolean deleteUser(DeleteRequest deleteRequest, HttpServletRequest request) {
         // 权限校验
         if (!isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH);
         }
-        if (user.getId() < 0) {
+        if (deleteRequest.getId() < 0) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "删除失败");
         }
-        boolean res = removeById(user.getId());
-        redisTemplate.delete("user:login:" + user.getId());
+        boolean res = removeById(deleteRequest.getId());
+        redisTemplate.delete("user:login:" + deleteRequest.getId());
         // 更新推荐用户列表 防止脏数据
         Set<String> keys = redisTemplate.keys("user:recommend:" + "*");
         redisTemplate.delete(keys);
@@ -301,8 +303,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
 
-
-
     /**
      * 更新用户
      *
@@ -344,11 +344,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return false;
     }
 
-
-
-
-
-
+    @Override
+    public User queryUserById(long id, HttpServletRequest request) {
+        User currentUser = this.getCurrentUser(request);
+        if (currentUser == null || !ADMIN_USER.equals(currentUser.getType())) {
+            throw new BusinessException(NO_AUTH, "没有权限");
+        }
+        if(id <= 0){
+            throw new BusinessException(PARAMS_ERROR);
+        }
+        User user = this.getById(id);
+        return user;
+    }
 
 
 }

@@ -2,6 +2,8 @@ package com.da.usercenter.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.da.usercenter.model.entity.User;
+import com.da.usercenter.model.request.DeleteRequest;
+import com.da.usercenter.model.request.QueryUserByConditionRequest;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -50,7 +52,7 @@ public interface UserService extends IService<User> {
      * @param request 客户端请求对象
      * @return 成功 or 失败
      */
-    boolean deleteUser(User user, HttpServletRequest request);
+    boolean deleteUser(DeleteRequest deleteRequest, HttpServletRequest request);
 
     /**
      * 管理员验证
@@ -100,5 +102,6 @@ public interface UserService extends IService<User> {
     Boolean updateUser(User user, HttpServletRequest request);
 
 
+    User queryUserById(long id, HttpServletRequest request);
 }
 

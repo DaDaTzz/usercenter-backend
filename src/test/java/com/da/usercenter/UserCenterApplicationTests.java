@@ -1,18 +1,12 @@
 package com.da.usercenter;
 
 import cn.hutool.core.date.StopWatch;
-import com.da.usercenter.mapper.UserFriendMapper;
 import com.da.usercenter.mapper.UserMapper;
 import com.da.usercenter.model.entity.User;
-import com.da.usercenter.model.entity.UserFriend;
-import com.da.usercenter.model.entity.UserTeam;
-import com.da.usercenter.service.UserFriendService;
 import com.da.usercenter.service.UserService;
-import com.da.usercenter.service.UserTeamService;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Profile;
 
 import javax.annotation.Resource;
 import java.util.*;
@@ -25,12 +19,7 @@ class UserCenterApplicationTests {
     private UserMapper userMapper;
     @Resource
     private UserService userService;
-    @Resource
-    private UserTeamService userTeamService;
-    @Resource
-    private UserFriendService userFriendService;
-    @Resource
-    private UserFriendMapper userFriendMapper;
+
 
     @Test
     public void testInsertUser(){
@@ -95,13 +84,7 @@ class UserCenterApplicationTests {
         System.out.println(user);
     }
 
-    @Test
-    public void testSearchUsersByTags(){
-        List<String> tags = Arrays.asList("python","java");
-        List<User> users = userService.searchUsersByTags(tags);
-        System.out.println(users);
-        System.out.println("size = " + users.size());
-    }
+
 
     @Test
     public void testGson(){
@@ -121,35 +104,10 @@ class UserCenterApplicationTests {
         });
     }
 
-    @Test
-    public void testSort(){
-        List<UserTeam> userTeamList = userTeamService.list();
-        userTeamList.sort(Comparator.comparing(UserTeam::getJoinTime));
-        for (UserTeam userTeam : userTeamList) {
-            System.out.println(userTeam.getJoinTime());
-        }
-    }
-
-    @Test
-    public void testInsert(){
-        UserFriend userFriend = new UserFriend();
-        userFriend.setUserId(1L);
-        userFriend.setFriendId(2L);
-        userFriendService.save(userFriend);
-        userFriend.setUserId(2L);
-        userFriend.setFriendId(1L);
-        userFriendService.save(userFriend);
-    }
 
 
-    @Test
-    public void testSelect(){
-        // 查询 id 为等于1的用户好友信息
-        List<User> friendList = userFriendMapper.getFriendsByUserId(1L);
-        friendList.forEach(user -> {
-            System.out.println(user);
-        });
-    }
+
+
 
 
 }

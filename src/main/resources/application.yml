@@ -30,10 +30,10 @@ spring:
 
 
 server:
-  port: 8080
-  #address: 0.0.0.0
+  port: 8090
+  address: 0.0.0.0
   servlet:
-    # context-path: /api
+    context-path: /api
     session:
       cookie:
         secure: true
@@ -42,7 +42,7 @@ server:
 
 mybatis-plus:
   configuration:
-    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       logic-delete-field: is_delete

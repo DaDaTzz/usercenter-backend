@@ -8,10 +8,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @MapperScan("com.da.usercenter.mapper")
 @EnableScheduling
-public class PartnerMatchingApplication {
+public class UserCenterBackendApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(PartnerMatchingApplication.class, args);
+        SpringApplication.run(UserCenterBackendApplication.class, args);
     }
 
 }

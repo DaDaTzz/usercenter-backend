@@ -16,6 +16,8 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
+import static com.da.usercenter.constant.UserConstant.ADMIN_USER;
+
 /**
  * 用户接口
  *
@@ -23,8 +25,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/user")
-//@CrossOrigin(origins = {"http://8.130.133.165"},allowCredentials = "true")
-@CrossOrigin(origins = {"http://127.0.0.1:5173"},allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:8081"},allowCredentials = "true")
+//@CrossOrigin(origins = {"http://8.130.133.165:81"},allowCredentials = "true")
 public class UserController{
     @Resource
     private UserService userService;
@@ -80,6 +82,7 @@ public class UserController{
         return ResponseResult.success(result, "注销成功");
     }
 
+
     /**
      * 根据条件查询用户信息
      * @param nickName
@@ -96,14 +99,26 @@ public class UserController{
 
     /**
      * 删除用户
-     * @param user
+     * @param deleteRequest
      * @param request
      * @return
      */
     @PostMapping("/delete")
-    public ResponseResult<Boolean> deleteUser(@RequestBody User user, HttpServletRequest request){
-        boolean result = userService.deleteUser(user, request);
+    public ResponseResult<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request){
+        boolean result = userService.deleteUser(deleteRequest, request);
         return ResponseResult.success(result);
+    }
+
+    /**
+     * 添加用户（仅限管理员调用）
+     * @param user
+     * @param request
+     * @return
+     */
+    @PostMapping("/add")
+    public ResponseResult<Boolean> addUser(@RequestBody User user, HttpServletRequest request){
+
+        return ResponseResult.success(userService.save(user));
     }
 
     /**
@@ -130,6 +145,35 @@ public class UserController{
         }
         Boolean res = userService.updateUser(user, request);
         return ResponseResult.success(res);
+    }
+
+    /**
+     * 获取所有用户信息（仅限管理员调用）
+     * @param request
+     * @return
+     */
+    @GetMapping("/list")
+    public ResponseResult<List<User>> getUserList(HttpServletRequest request){
+        User currentUser = userService.getCurrentUser(request);
+
+        if(!ADMIN_USER.equals(currentUser.getType())){
+            throw new BusinessException(ErrorCode.NO_AUTH, "没有权限");
+        }
+
+        List<User> userList = userService.list();
+        return ResponseResult.success(userList);
+    }
+
+    /**
+     * 多条件搜索用户（仅限管理员调用）
+     * @param id
+     * @param request
+     * @return
+     */
+    @GetMapping("/getById")
+    public ResponseResult<User> queryUserById(long id, HttpServletRequest request){
+        User user = userService.queryUserById(id,  request);
+        return ResponseResult.success(user);
     }
 
 
